@@ -18,6 +18,7 @@ import {
 import 'reactflow/dist/style.css';
 import Image from 'next/image';
 import AskNode from './askNode';
+import Generate from './Generate';
 // Dynamically import ReactFlow components with SSR disabled
 const ReactFlow = dynamic(() => import('reactflow').then((mod) => mod.default), { ssr: false });
 const Background = dynamic(() => import('reactflow').then((mod) => mod.Background), { ssr: false });
@@ -27,14 +28,17 @@ const MiniMap = dynamic(() => import('reactflow').then((mod) => mod.MiniMap), { 
 // Neobrutalism color palette
 const colors = {
   background: '#FF6B6B',
-  primary: '#4169E1', // Royal Blue
+  mainNode: '#4169E1', // Royal Blue
   secondary: '#4ECDC4',
-  accent: '#FFD93D',
+  secondaryNode: '#FFD93D',
   text: '#2C3E50',
   leaf: '#4ECDC4',
   border: '#000000',
   selected: '#FFD93D',
   finished: '#32CD32', // Lime Green
+  rootHover: '#3A5FCD',
+  branchHover: '#3CB371',
+  leafHover: '#3CB371',
 };
 
 const interpolateColor = (startColor: string, endColor: string, factor: number): string => {
@@ -47,12 +51,14 @@ const interpolateColor = (startColor: string, endColor: string, factor: number):
 };
 
 // Custom Node Component
-const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
+const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
   const [nodeData, setNodeData] = useState(data);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
   const handleComplete = () => {
     const updatedContent = nodeData.content.map((item: { completed: boolean }) => ({ ...item, completed: true }));
-    const updatedColor = interpolateColor(colors.primary, colors.finished, 1); // Use interpolateColor for complete
+    const updatedColor = interpolateColor(colors.mainNode, colors.finished, 1); // Use interpolateColor for complete
     setNodeData({ ...nodeData, content: updatedContent, color: updatedColor });
     setIsExpanded(false);
     if (nodeData.onNodeUpdate) {
@@ -72,7 +78,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
     const completedCount = updatedContent.filter((item: { completed: boolean }) => item.completed).length;
     const totalCount = updatedContent.length;
     const completionFactor = completedCount / totalCount;
-    const updatedColor = interpolateColor(colors.primary, colors.finished, completionFactor);
+    const updatedColor = interpolateColor(colors.mainNode, colors.finished, completionFactor);
     const updatedNodeData = { ...nodeData, content: updatedContent, color: updatedColor };
     setNodeData(updatedNodeData);
     if (nodeData.onNodeUpdate) {
@@ -86,29 +92,44 @@ const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
     }
   }, [nodeData, id]);
 
+  const getHoverColor = () => {
+    if (nodeData.isRoot) {
+      return colors.rootHover;
+    } else if (nodeData.isLeaf) {
+      return colors.leafHover;
+    } else {
+      return colors.branchHover;
+    }
+  };
+
+  const nodeStyle = {
+    padding: '20px',
+    borderRadius: '10px',
+    width: 250,
+    fontSize: '16px',
+    color: colors.text,
+    textAlign: 'center' as const,
+    borderWidth: '3px',
+    borderStyle: 'solid',
+    borderColor: colors.border,
+    backgroundColor: isHovered ? getHoverColor() : (selected ? colors.selected : nodeData.color || colors.mainNode),
+    position: 'relative' as const,
+    boxShadow: '5px 5px 0px ' + colors.border,
+    transition: 'all 0.3s ease',
+  };
+
   return (
     <div
-      style={{
-        padding: '20px',
-        borderRadius: '10px',
-        width: 250,
-        fontSize: '16px',
-        color: colors.text,
-        textAlign: 'center',
-        borderWidth: '3px',
-        borderStyle: 'solid',
-        borderColor: colors.border,
-        backgroundColor: nodeData.color || colors.primary,
-        position: 'relative',
-        boxShadow: '5px 5px 0px ' + colors.border,
-      }}
+      style={nodeStyle}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <Handle type="target" position={Position.Top} />
       <strong>{nodeData.label}</strong>
       {nodeData.isLeaf && (
         <>
           <div style={{ position: 'absolute', top: 0, right: 0 }}>
-            <button onClick={toggleExpand} style={{ marginRight: '5px', cursor: 'pointer', background: colors.accent, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
+            <button onClick={toggleExpand} style={{ marginRight: '5px', cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
               <Image
                 src={`/icons/${isExpanded ? 'up' : 'down'}.png`}
                 alt={isExpanded ? 'Collapse' : 'Expand'}
@@ -116,7 +137,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
                 height={20}
               />
             </button>
-            <button onClick={handleComplete} style={{ marginRight: '5px', cursor: 'pointer', background: colors.accent, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
+            <button onClick={handleComplete} style={{ marginRight: '5px', cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
               <Image
                 src="/icons/complete.png"
                 alt="Complete"
@@ -124,10 +145,18 @@ const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
                 height={20}
               />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); nodeData.onAskClick(id, nodeData); }} style={{ cursor: 'pointer', background: colors.accent, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
+            <button onClick={(e) => { e.stopPropagation(); nodeData.onAskClick(id, nodeData); }} style={{ marginRight: '5px', cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
               <Image
                 src="/icons/ask.png"
                 alt="Ask"
+                width={20}
+                height={20}
+              />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); nodeData.onEditClick(id, nodeData); }} style={{ cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
+              <Image
+                src="/icons/edit.png"
+                alt="Edit"
                 width={20}
                 height={20}
               />
@@ -147,7 +176,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
                 padding: '5px',
                 borderRadius: '5px',
                 boxShadow: '3px 3px 0px ' + colors.border,
-                background: colors.primary,
+                background: colors.mainNode,
               }}
             >
               <input
@@ -165,15 +194,16 @@ const CustomNode: React.FC<NodeProps> = ({ data, id }) => {
           ))}
         </div>
       )}
-      {nodeData.quiz && nodeData.isLeaf && isExpanded && (
+
+      {nodeData.tricks && nodeData.isLeaf && isExpanded && (
         <div style={{ marginTop: '10px', textAlign: 'left', background: colors.background, padding: '10px', borderRadius: '5px', border: '2px solid ' + colors.border }}>
-          <strong>Quiz</strong>
-          {nodeData.quiz.map((q: string, idx: number) => (
+          <strong>Püf Noktaları</strong>
+          {nodeData.tricks.map((trick: string, idx: number) => (
             <div
               key={idx}
-              style={{ marginTop: '5px', padding: '5px', borderRadius: '5px', boxShadow: '3px 3px 0px ' + colors.border, background: colors.accent }}
+              style={{ marginTop: '5px', padding: '5px', borderRadius: '5px', boxShadow: '3px 3px 0px ' + colors.border, background: colors.secondaryNode }}
             >
-              <label style={{ color: colors.text }}>{q}</label>
+              <label style={{ color: colors.text }}>{trick}</label>
             </div>
           ))}
         </div>
@@ -188,150 +218,15 @@ const nodeTypes: NodeTypes = {
   custom: CustomNode,
 };
 
-// Initial Nodes and Edges
-const initialNodes: Node[] = [
-  {
-    id: '1',
-    type: 'custom',
-    position: { x: 400, y: 5 },
-    data: { label: 'Ana Konu: Fizik 2', color: colors.primary, isLeaf: false, childLeafIds: ['2', '3', '4'] },
-  },
-  {
-    id: '2',
-    type: 'custom',
-    position: { x: 100, y: 150 },
-    data: { label: 'Dal: Elektrik', color: colors.accent, isLeaf: false, childLeafIds: ['5', '6'] },
-  },
-  {
-    id: '3',
-    type: 'custom',
-    position: { x: 400, y: 150 },
-    data: { label: 'Dal: Doğru Akım', color: colors.accent, isLeaf: false, childLeafIds: [] },
-  },
-  {
-    id: '4',
-    type: 'custom',
-    position: { x: 700, y: 150 },
-    data: { label: 'Dal: Elektrik Potansiyel', color: colors.accent, isLeaf: false, childLeafIds: ['7', '8'] },
-  },
-  {
-    id: '5',
-    type: 'custom',
-    position: { x: 0, y: 300 },
-    data: {
-      label: 'Yaprak: Elektrik Yükleri ve Coulomb Kanunu',
-      content: [
-        { label: 'Konu anlatımı', completed: false },
-        { label: 'Örnek Sorular', completed: false },
-        { label: 'Quiz', completed: false },
-      ],
-      quiz: ['Quiz 1: Coulomb Kanunu nedir?', 'Quiz 2: Elektrik yükü nasıl hesaplanır?'],
-      color: colors.leaf,
-      isLeaf: true,
-    },
-  },
-  {
-    id: '6',
-    type: 'custom',
-    position: { x: 300, y: 300 },
-    data: {
-      label: 'Yaprak: Elektrik Alan',
-      content: [
-        { label: 'Konu anlatımı', completed: false },
-        { label: 'Örnek Sorular', completed: false },
-        { label: 'Quiz', completed: false },
-      ],
-      quiz: ['Quiz 1: Elektrik alan nedir?', 'Quiz 2: Elektrik alan çizgileri nasıl çizilir?'],
-      color: colors.leaf,
-      isLeaf: true,
-    },
-  },
-  {
-    id: '7',
-    type: 'custom',
-    position: { x: 600, y: 300 },
-    data: {
-      label: 'Yaprak: Elektrik Potansiyel Enerji',
-      content: [
-        { label: 'Konu anlatımı', completed: false },
-        { label: 'Örnek Sorular', completed: false },
-        { label: 'Quiz', completed: false },
-      ],
-      quiz: ['Quiz 1: Elektrik potansiyel enerji nedir?', 'Quiz 2: Elektrik potansiyel enerji nasıl hesaplanır?'],
-      color: colors.leaf,
-      isLeaf: true,
-    },
-  },
-  {
-    id: '8',
-    type: 'custom',
-    position: { x: 900, y: 300 },
-    data: {
-      label: 'Yaprak: Elektrik Potansiyel Farkı',
-      content: [
-        { label: 'Konu anlatımı', completed: false },
-        { label: 'Örnek Sorular', completed: false },
-        { label: 'Quiz', completed: false },
-      ],
-      quiz: ['Quiz 1: Elektrik potansiyel farkı nedir?', 'Quiz 2: Elektrik potansiyel farkı nasıl ölçülür?'],
-      color: colors.leaf,
-      isLeaf: true,
-    },
-  },
-];
-
-const initialEdges: Edge[] = [
-  {
-    id: 'e1-2',
-    source: '1',
-    target: '2',
-    sourceHandle: 'a',
-  },
-  {
-    id: 'e1-3',
-    source: '1',
-    target: '3',
-    sourceHandle: 'a',
-  },
-  {
-    id: 'e1-4',
-    source: '1',
-    target: '4',
-    sourceHandle: 'a',
-  },
-  {
-    id: 'e2-5',
-    source: '2',
-    target: '5',
-    sourceHandle: 'a',
-  },
-  {
-    id: 'e2-6',
-    source: '2',
-    target: '6',
-    sourceHandle: 'a',
-  },
-  {
-    id: 'e4-7',
-    source: '4',
-    target: '7',
-    sourceHandle: 'a',
-  },
-  {
-    id: 'e4-8',
-    source: '4',
-    target: '8',
-    sourceHandle: 'a',
-  },
-];
-
 // Main Flowchart Component
 const Flowchart: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
+  const [showLeafDetailModal, setShowLeafDetailModal] = useState(false);
   const [selectedNodeData, setSelectedNodeData] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(true);
 
   const onConnect = useCallback(
     (params: Edge | Connection) =>
@@ -350,10 +245,10 @@ const Flowchart: React.FC = () => {
   );
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    if (!node.data.isLeaf) {
+    if (node.data?.isLeaf === false) {
       setSelectedNode(node.id);
       // Toggle visibility of child nodes
-      const childIds = node.data.childLeafIds || [];
+      const childIds = node.data?.childLeafIds || [];
       setNodes((nds) =>
         nds.map((n) => {
           if (childIds.includes(n.id)) {
@@ -371,18 +266,18 @@ const Flowchart: React.FC = () => {
   const updateParentNodeColor = useCallback((nodeId: string, nodeData: any) => {
     setNodes((nds) =>
       nds.map((node) => {
-        if (node.data.childLeafIds && node.data.childLeafIds.includes(nodeId)) {
-          const childNodes = nds.filter((n) => node.data.childLeafIds.includes(n.id));
+        if (node.data?.childLeafIds && node.data.childLeafIds.includes(nodeId)) {
+          const childNodes = nds.filter((n) => node.data?.childLeafIds?.includes(n.id));
           const totalCompleted = childNodes.reduce((acc, childNode) => {
-            if (childNode.data.isLeaf) {
-              const completedCount = childNode.data.content.filter((item: { completed: boolean }) => item.completed).length;
-              const total = childNode.data.content.length;
-              return acc + completedCount / total;
+            if (childNode.data?.isLeaf) {
+              const completedCount = childNode.data.content?.filter((item: { completed: boolean }) => item.completed).length || 0;
+              const total = childNode.data.content?.length || 0;
+              return acc + (total > 0 ? completedCount / total : 0);
             }
             return acc;
           }, 0);
-          const completionFactor = totalCompleted / childNodes.length;
-          const updatedColor = interpolateColor(colors.accent, colors.finished, completionFactor);
+          const completionFactor = childNodes.length > 0 ? totalCompleted / childNodes.length : 0;
+          const updatedColor = interpolateColor(colors.secondaryNode, colors.finished, completionFactor);
           return {
             ...node,
             data: {
@@ -400,13 +295,13 @@ const Flowchart: React.FC = () => {
     setNodes((nds) => {
       const rootNode = nds.find(node => node.id === '1');
       if (rootNode) {
-        const childNodes = nds.filter(node => rootNode.data.childLeafIds.includes(node.id));
+        const childNodes = nds.filter(node => rootNode.data?.childLeafIds?.includes(node.id));
         const greenChildNodes = childNodes.filter(node => {
-          const color = node.data.color;
-          return color && color !== colors.accent;
+          const color = node.data?.color;
+          return color && color !== colors.secondaryNode;
         });
-        const greenRatio = greenChildNodes.length / childNodes.length;
-        const updatedColor = interpolateColor(colors.primary, colors.finished, greenRatio);
+        const greenRatio = childNodes.length > 0 ? greenChildNodes.length / childNodes.length : 0;
+        const updatedColor = interpolateColor(colors.mainNode, colors.finished, greenRatio);
         return nds.map(node => {
           if (node.id === '1') {
             return {
@@ -428,14 +323,27 @@ const Flowchart: React.FC = () => {
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === nodeId) {
+          let color;
+          if (nodeId === '1') {
+            color = colors.mainNode;
+          } else if (nodeData.isLeaf) {
+            color = colors.leaf;
+          } else {
+            color = colors.secondaryNode;
+          }
           return {
             ...node,
             data: {
               ...nodeData,
+              color: nodeData.color || color,
               onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
               onAskClick: (id: string, data: any) => {
                 setSelectedNodeData(data);
                 setShowAskModal(true);
+              },
+              onEditClick: (id: string, data: any) => {
+                setSelectedNodeData(data);
+                setShowLeafDetailModal(true);
               },
             },
           };
@@ -448,20 +356,26 @@ const Flowchart: React.FC = () => {
   }, [setNodes, updateParentNodeColor, updateRootNodeColor]);
 
   useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
-          onAskClick: (id: string, data: any) => {
-            setSelectedNodeData(data);
-            setShowAskModal(true);
+    if (!isGenerating) {
+      setNodes((nds) =>
+        nds.map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
+            onAskClick: (id: string, data: any) => {
+              setSelectedNodeData(data);
+              setShowAskModal(true);
+            },
+            onEditClick: (id: string, data: any) => {
+              setSelectedNodeData(data);
+              setShowLeafDetailModal(true);
+            },
           },
-        },
-      }))
-    );
-  }, [setNodes, onNodeUpdate]);
+        }))
+      );
+    }
+  }, [setNodes, onNodeUpdate, isGenerating]);
 
   // Memoize the default edge options
   const defaultEdgeOptions = useMemo(() => ({
@@ -474,23 +388,48 @@ const Flowchart: React.FC = () => {
   // Memoize the nodeTypes
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
 
+  const handleGenerateComplete = (generatedNodes: Node[], generatedEdges: Edge[]) => {
+    const updatedNodes = generatedNodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
+        onAskClick: (id: string, data: any) => {
+          setSelectedNodeData(data);
+          setShowAskModal(true);
+        },
+        onEditClick: (id: string, data: any) => {
+          setSelectedNodeData(data);
+          setShowLeafDetailModal(true);
+        },
+      },
+    }));
+    setNodes(updatedNodes);
+    setEdges(generatedEdges);
+    setIsGenerating(false);
+  };
+
   return (
     <div style={{ width: '100vw', height: '100vh', background: colors.background }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        nodeTypes={memoizedNodeTypes}
-        fitView
-        defaultEdgeOptions={defaultEdgeOptions}
-      >
-        <Background color={colors.border} />
-        <Controls />
-        <MiniMap style={{ backgroundColor: '#4ECDC4', border: '3px solid #000' }} />
-      </ReactFlow>
+      {isGenerating ? (
+        <Generate onGenerateComplete={handleGenerateComplete} />
+      ) : (
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          nodeTypes={memoizedNodeTypes}
+          fitView
+          defaultEdgeOptions={defaultEdgeOptions}
+        >
+          <Background color={colors.border} />
+          <Controls />
+          <MiniMap style={{ backgroundColor: '#4ECDC4', border: '3px solid #000' }} />
+        </ReactFlow>
+      )}
       {showAskModal && selectedNodeData && (
         <div style={{
           position: 'fixed',
@@ -521,6 +460,38 @@ const Flowchart: React.FC = () => {
             }}
           />
           <AskNode selectedNode={selectedNodeData} />
+        </div>
+      )}
+      {showLeafDetailModal && selectedNodeData && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: '#4ECDC4',
+          padding: '20px',
+          borderRadius: '10px',
+          zIndex: 1000,
+          maxWidth: '80%',
+          maxHeight: '80%',
+          overflow: 'auto',
+          boxShadow: '8px 8px 0px #000000',
+          border: '5px solid #000000',
+        }}>
+          <Image
+            src="/icons/exit.png"
+            alt="Çıkış"
+            width={30}
+            height={30}
+            onClick={() => setShowLeafDetailModal(false)}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              cursor: 'pointer',
+            }}
+          />
+         
         </div>
       )}
     </div>

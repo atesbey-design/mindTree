@@ -6,7 +6,7 @@ interface AskNodeProps {
   selectedNode: {
     label: string;
     content: { label: string; completed: boolean }[];
-    quiz: string[];
+    tricks: string[];
   };
 }
 
@@ -22,7 +22,7 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
     setMessages(prevMessages => [...prevMessages, { role: 'user', content: inputMessage }]);
     setIsLoading(true);
     
-    const prompt = `"${selectedNode.label}" konusunda uzman birisin bu konuda sana sorularn soruları bir öğretmen gibi cevaplamalısın.Cevapların örnekler içermeli ve bu örnekler sayesinde kullanıcı öğrenmeli. Cevaplarında kod vs olmamalı. sasdece bilgi aktarımı olmalı.İngilizce cevap verme.Sorulan soru ${inputMessage} bu soruya cevap verirken kullanıcının bilgi seviyesine göre cevap vermelisin.Sadece soruya cevap ver ek bilgi verme.Asla ama asla kim olduğunu ve ne olduğunu anlatma. Öğretmen olduğunu da söyleme.`;
+    const prompt = `"${selectedNode.label}"  konusunda uzman birisin bu konuda sana sorularn soruları bir öğretmen gibi cevaplamalısın.Cevapların örnekler içermeli ve bu örnekler sayesinde kullanıcı öğrenmeli. Cevaplarında kod vs olmamalı. sasdece bilgi aktarımı olmalı.İngilizce cevap verme.Sorulan soru ${inputMessage} bu soruya cevap verirken kullanıcının bilgi seviyesine göre cevap vermelisin.Sadece soruya cevap ver ek bilgi verme.Asla ama asla kim olduğunu ve ne olduğunu anlatma. Öğretmen olduğunu da söyleme.`;
     
     try {
       const response = await fetch('/api/ask', {
@@ -98,7 +98,7 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
               boxShadow: '5px 5px 0px #000000',
               fontSize: '18px',
             }}>
-              <strong>{message.role === 'user' ? 'Sen: ' : 'AI: '}</strong>
+              <strong>{message.role === 'user' ? 'Sen: ' : 'MINDMAP: '}</strong>
               {message.content}
             </div>
           ))
