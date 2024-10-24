@@ -30,9 +30,58 @@ export async function POST(req: NextRequest) {
     8. Ana nodenin color değeri colors.mainNode olmalıdır.
     9.Ana düğüme bağlı olan düğümlerin color değeri colors.secondaryNode olmalıdır.
     10.leaf olan düğümlerin rengi colors.leaf olmalıdır.
-    11.Ana node dışıda kalan bütün nodlerin birbiriyle uzaklığı yatayda 150px dikeyde 150px olmalıdır. Ana nodenin üstünde altında sağında solunda her yerinde nodeler sarsın sadece altında olmasın. ana nodeye bağlı olan leafların arasında yatayda 150px dikeyde 150px olmalıdır.
+    11.Ana node dışıda kalan bütün nodlerin birbiriyle uzaklığı yatayda 150px dikeyde 150px olmalıdır. Ana nodenin altında bağlı nodeler olsun ve aralarında boşluk olsun. o nodelere bağlı olan leaflerin arasında yatayda 350px dikeyde 350px olmalıdır. Birbirlerinin üzerine asla gelmesinler. bir nodenin widthi 300 heighti 200 ona göre hesap yap 
     
     Node içeriği aşağıdaki  şekildeki yapıya uygun  olmalıdır. dal ve yaprakta verilen veriler konuyla direkt ilişkili olmalıdır temp data kullanma.VERİLERİN TEMPLATE VERİ OLMASIN MOCK VERİ OLMASIN ANA  KONU NEYSE ONUN ALTINDA BULUNABİLECEK KONULARI VE BUNLARIN İÇERİİSİNDE BULUNABİLECK-TRİCKLER İPUCLARINI İÇERSİN:
+    Nodelerin position değerlerini aşağıdaki fonksiyona göre hesapla:
+    const calculateNodePositions = (nodes) => {
+  // Temel konfigürasyon
+  const config = {
+    levelHeight: 150,    // Seviyeler arası dikey mesafe
+    nodeWidth: 200,      // Node genişliği
+    nodeHeight: 80,      // Node yüksekliği
+    horizontalGap: 300    // Yatay boşluk
+  };
+
+  const calculatePositions = (nodeId, level = 0, horizontalIndex = 0, parentWidth = 0) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return null;
+
+    // Child node'ları bul
+    const children = nodes.filter(n => 
+      node.data.childLeafIds && node.data.childLeafIds.includes(n.id)
+    );
+
+    // Yatay pozisyon hesaplama
+    const totalWidth = Math.max(
+      children.length * (config.nodeWidth + config.horizontalGap),
+      config.nodeWidth
+    );
+    
+    const startX = -(totalWidth / 2) + (config.nodeWidth / 2);
+    
+    // Node'un yeni pozisyonu
+    const newPosition = {
+      x: startX + (horizontalIndex * (config.nodeWidth + config.horizontalGap)),
+      y: level * config.levelHeight
+    };
+
+    // Child node'ların pozisyonlarını hesapla
+    const childPositions = children.map((child, index) => 
+      calculatePositions(
+        child.id,
+        level + 1,
+        index,
+        totalWidth
+      )
+    );
+
+    return {
+      ...node,
+      position: newPosition,
+      children: childPositions.filter(Boolean)
+    };
+  };
 
     
     const initialNodes: Node[] = [

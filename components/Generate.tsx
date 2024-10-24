@@ -1,52 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactFlow, { Background, Controls, MiniMap, Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { useAppDispatch, useAppSelector } from '../hooks/redux';
+import { generateMindmap } from '../store/features/mindmapSlice';
 
 interface GenerateProps {
   onGenerateComplete: (generatedNodes: Node[], generatedEdges: Edge[]) => void;
 }
 
 const Generate: React.FC<GenerateProps> = ({ onGenerateComplete }) => {
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
   const [input, setInput] = useState('');
   const [educationLevel, setEducationLevel] = useState('');
   const [difficulty, setDifficulty] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { data, loading } = useAppSelector((state) => state.mindmap);
 
-  const handleGenerate = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/mindmap-generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topic: input,
-          educationLevel,
-          difficulty,
-        }),
-      });
-
-      console.log(response);
-
-      if (!response.ok) {
-        throw new Error('Failed to generate mindmap');
-      }
-
-      const data = await response.json();
-      setNodes(data.nodes);
-      setEdges(data.edges);
+  useEffect(() => {
+    if (data) {
       onGenerateComplete(data.nodes, data.edges);
-    } catch (error) {
-      console.error('Error generating mindmap:', error);
-      // You might want to show an error message to the user here
-    } finally {
-      setIsLoading(false);
     }
+  }, [data, onGenerateComplete]);
+
+  const handleGenerate = () => {
+    dispatch(generateMindmap({ topic: input, educationLevel, difficulty }));
   };
 
   return (
@@ -139,35 +117,25 @@ const Generate: React.FC<GenerateProps> = ({ onGenerateComplete }) => {
         />
         <button 
           onClick={handleGenerate} 
-          disabled={isLoading}
+          disabled={loading}
           style={{ 
             padding: '10px 20px',
             fontSize: '16px',
             fontWeight: 'bold',
-            backgroundColor: isLoading ? '#ccc' : '#FFD93D',
+            backgroundColor: loading ? '#ccc' : '#FFD93D',
             border: '3px solid #000',
             borderRadius: '0',
             color: '#000',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             boxShadow: '5px 5px 0px #000',
             transition: 'all 0.1s ease-in-out',
             width: '150px'
           }}
         >
-          {isLoading ? 'Oluşturuluyor...' : 'Oluştur'}
+          {loading ? 'Oluşturuluyor...' : 'Oluştur'}
         </button>
       </div>
-      <div style={{ flex: 1, border: '3px solid #000', margin: '0 20px 20px' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          fitView
-        >
-          <Background color="#000" gap={20} />
-          <Controls />
-          <MiniMap style={{ backgroundColor: '#4ECDC4', border: '3px solid #000' }} />
-        </ReactFlow>
-      </div>
+     
     </div>
   );
 };

@@ -17,8 +17,12 @@ import {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Image from 'next/image';
-import AskNode from './askNode';
+import { useSelector, useDispatch } from 'react-redux';
+import AskNode from './AskNode';
 import Generate from './Generate';
+import { initialNodes, initialEdges } from '../context/initialData';
+import { setGeneratedData, nodesChange, edgesChange } from '../store/features/mindmapSlice';
+import History from './History';
 // Dynamically import ReactFlow components with SSR disabled
 const ReactFlow = dynamic(() => import('reactflow').then((mod) => mod.default), { ssr: false });
 const Background = dynamic(() => import('reactflow').then((mod) => mod.Background), { ssr: false });
@@ -112,7 +116,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
     borderWidth: '3px',
     borderStyle: 'solid',
     borderColor: colors.border,
-    backgroundColor: isHovered ? getHoverColor() : (selected ? colors.selected : nodeData.color || colors.mainNode),
+    backgroundColor: colors.mainNode,
     position: 'relative' as const,
     boxShadow: '5px 5px 0px ' + colors.border,
     transition: 'all 0.3s ease',
@@ -220,8 +224,10 @@ const nodeTypes: NodeTypes = {
 
 // Main Flowchart Component
 const Flowchart: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const dispatch = useDispatch();
+  const nodes = useSelector((state: any) => state.mindmap?.data?.nodes || []);
+  const edges = useSelector((state: any) => state.mindmap?.data?.edges || []);
+  
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [showLeafDetailModal, setShowLeafDetailModal] = useState(false);
@@ -230,18 +236,16 @@ const Flowchart: React.FC = () => {
 
   const onConnect = useCallback(
     (params: Edge | Connection) =>
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...params,
-            type: 'default',
-            markerEnd: { type: MarkerType.ArrowClosed, color: colors.border },
-            style: { stroke: colors.border, strokeWidth: 3 },
-          },
-          eds
-        )
-      ),
-    [setEdges]
+      dispatch({
+        type: 'ADD_EDGE',
+        payload: {
+          ...params,
+          type: 'default',
+          markerEnd: { type: MarkerType.ArrowClosed, color: colors.border },
+          style: { stroke: colors.border, strokeWidth: 3 },
+        },
+      }),
+    [dispatch]
   );
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
@@ -249,133 +253,67 @@ const Flowchart: React.FC = () => {
       setSelectedNode(node.id);
       // Toggle visibility of child nodes
       const childIds = node.data?.childLeafIds || [];
-      setNodes((nds) =>
-        nds.map((n) => {
-          if (childIds.includes(n.id)) {
-            return {
-              ...n,
-              hidden: !n.hidden,
-            };
-          }
-          return n;
-        })
-      );
+      dispatch({
+        type: 'TOGGLE_CHILD_NODES',
+        payload: { nodeId: node.id, childIds },
+      });
     }
-  }, [setNodes]);
+  }, [dispatch]);
 
   const updateParentNodeColor = useCallback((nodeId: string, nodeData: any) => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.data?.childLeafIds && node.data.childLeafIds.includes(nodeId)) {
-          const childNodes = nds.filter((n) => node.data?.childLeafIds?.includes(n.id));
-          const totalCompleted = childNodes.reduce((acc, childNode) => {
-            if (childNode.data?.isLeaf) {
-              const completedCount = childNode.data.content?.filter((item: { completed: boolean }) => item.completed).length || 0;
-              const total = childNode.data.content?.length || 0;
-              return acc + (total > 0 ? completedCount / total : 0);
-            }
-            return acc;
-          }, 0);
-          const completionFactor = childNodes.length > 0 ? totalCompleted / childNodes.length : 0;
-          const updatedColor = interpolateColor(colors.secondaryNode, colors.finished, completionFactor);
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              color: updatedColor,
-            },
-          };
-        }
-        return node;
-      })
-    );
-  }, [setNodes]);
+    dispatch({
+      type: 'UPDATE_PARENT_NODE_COLOR',
+      payload: { nodeId, nodeData },
+    });
+  }, [dispatch]);
 
   const updateRootNodeColor = useCallback(() => {
-    setNodes((nds) => {
-      const rootNode = nds.find(node => node.id === '1');
-      if (rootNode) {
-        const childNodes = nds.filter(node => rootNode.data?.childLeafIds?.includes(node.id));
-        const greenChildNodes = childNodes.filter(node => {
-          const color = node.data?.color;
-          return color && color !== colors.secondaryNode;
-        });
-        const greenRatio = childNodes.length > 0 ? greenChildNodes.length / childNodes.length : 0;
-        const updatedColor = interpolateColor(colors.mainNode, colors.finished, greenRatio);
-        return nds.map(node => {
-          if (node.id === '1') {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                color: updatedColor,
-              },
-            };
-          }
-          return node;
-        });
-      }
-      return nds;
+    dispatch({
+      type: 'UPDATE_ROOT_NODE_COLOR',
     });
-  }, [setNodes]);
+  }, [dispatch]);
 
   const onNodeUpdate = useCallback((nodeId: string, nodeData: any) => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id === nodeId) {
-          let color;
-          if (nodeId === '1') {
-            color = colors.mainNode;
-          } else if (nodeData.isLeaf) {
-            color = colors.leaf;
-          } else {
-            color = colors.secondaryNode;
-          }
-          return {
-            ...node,
-            data: {
-              ...nodeData,
-              color: nodeData.color || color,
-              onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
-              onAskClick: (id: string, data: any) => {
-                setSelectedNodeData(data);
-                setShowAskModal(true);
-              },
-              onEditClick: (id: string, data: any) => {
-                setSelectedNodeData(data);
-                setShowLeafDetailModal(true);
-              },
-            },
-          };
-        }
-        return node;
-      })
-    );
+    dispatch({
+      type: 'UPDATE_NODE',
+      payload: { nodeId, nodeData },
+    });
     updateParentNodeColor(nodeId, nodeData);
     updateRootNodeColor();
-  }, [setNodes, updateParentNodeColor, updateRootNodeColor]);
+  }, [dispatch, updateParentNodeColor, updateRootNodeColor]);
 
   useEffect(() => {
     if (!isGenerating) {
-      setNodes((nds) =>
-        nds.map((node) => ({
-          ...node,
-          data: {
-            ...node.data,
-            onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
-            onAskClick: (id: string, data: any) => {
-              setSelectedNodeData(data);
-              setShowAskModal(true);
-            },
-            onEditClick: (id: string, data: any) => {
-              setSelectedNodeData(data);
-              setShowLeafDetailModal(true);
-            },
-          },
-        }))
-      );
+      const onNodeUpdateCallback = (id: string, data: any) => onNodeUpdate(id, data);
+      const onAskClickCallback = (id: string, data: any) => {
+        setSelectedNodeData(data);
+        setShowAskModal(true);
+      };
+      const onEditClickCallback = (id: string, data: any) => {
+        setSelectedNodeData(data);
+        setShowLeafDetailModal(true);
+      };
+
+      // Store callbacks in a ref to avoid non-serializable values in actions
+      const callbacksRef = {
+        onNodeUpdate: onNodeUpdateCallback,
+        onAskClick: onAskClickCallback,
+        onEditClick: onEditClickCallback,
+      };
+
+      dispatch({
+        type: 'SET_NODE_CALLBACKS',
+        payload: {
+          onNodeUpdate: 'onNodeUpdate',
+          onAskClick: 'onAskClick',
+          onEditClick: 'onEditClick',
+        },
+      });
+
+      // Attach callbacks to window object
+      (window as any).nodeCallbacks = callbacksRef;
     }
-  }, [setNodes, onNodeUpdate, isGenerating]);
+  }, [dispatch, onNodeUpdate, isGenerating]);
 
   // Memoize the default edge options
   const defaultEdgeOptions = useMemo(() => ({
@@ -388,43 +326,57 @@ const Flowchart: React.FC = () => {
   // Memoize the nodeTypes
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
 
+
+
   const handleGenerateComplete = (generatedNodes: Node[], generatedEdges: Edge[]) => {
-    const updatedNodes = generatedNodes.map(node => ({
-      ...node,
-      data: {
-        ...node.data,
-        onNodeUpdate: (id: string, data: any) => onNodeUpdate(id, data),
-        onAskClick: (id: string, data: any) => {
-          setSelectedNodeData(data);
-          setShowAskModal(true);
-        },
-        onEditClick: (id: string, data: any) => {
-          setSelectedNodeData(data);
-          setShowLeafDetailModal(true);
-        },
-      },
-    }));
-    setNodes(updatedNodes);
-    setEdges(generatedEdges);
+    dispatch(setGeneratedData({ nodes: generatedNodes, edges: generatedEdges }));
     setIsGenerating(false);
+    localStorage.setItem('nodes', JSON.stringify(generatedNodes));
+    localStorage.setItem('edges', JSON.stringify(generatedEdges));
   };
+  
+  useEffect(() => {
+    const storedNodes = localStorage.getItem('nodes');
+    const storedEdges = localStorage.getItem('edges');
+  
+    if (storedNodes && storedEdges) {
+      dispatch(setGeneratedData({ nodes: JSON.parse(storedNodes), edges: JSON.parse(storedEdges) }));
+      setIsGenerating(false);
+    } else {
+      setIsGenerating(true);
+    }
+  }, [dispatch]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: colors.background }}>
+    <div style={{ background: colors.background,
+      width: '100vw',
+      height: '100vh'
+     }}>
+      <div style={{ zIndex: 999 }}>
+        <History />
+      </div>
       {isGenerating ? (
         <Generate onGenerateComplete={handleGenerateComplete} />
       ) : (
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          nodeTypes={memoizedNodeTypes}
-          fitView
-          defaultEdgeOptions={defaultEdgeOptions}
-        >
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={(changes) => {
+          dispatch(nodesChange(changes));
+          localStorage.setItem('nodes', JSON.stringify(nodes)); 
+        }}
+        onEdgesChange={(changes) => {
+          dispatch(edgesChange(changes));
+          localStorage.setItem('edges', JSON.stringify(edges));
+        }}
+        onConnect={onConnect}
+        onNodeClick={onNodeClick}
+        nodeTypes={memoizedNodeTypes}
+        fitView
+        defaultEdgeOptions={defaultEdgeOptions}
+      
+      >
+      
           <Background color={colors.border} />
           <Controls />
           <MiniMap style={{ backgroundColor: '#4ECDC4', border: '3px solid #000' }} />
