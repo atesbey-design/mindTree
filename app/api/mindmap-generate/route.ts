@@ -27,9 +27,11 @@ export async function POST(req: NextRequest) {
     6. Zihin haritası, gerçek bir ağaç yapısı gibi dallanmalı ve yayılmalıdır.
 
     7.Verilerin gerçekten de bir zihin haritası olması gerekiyor.Kullanıcının girdiği konu ve seçtiği eğitim seviyesine göre bir zihin haritası oluşturulmalıdır.Asla template data veya mock data dönderme gerçek datalar dönder.
-    8. Ana nodenin color değeri colors.mainNode olmalıdır.
-    9.Ana düğüme bağlı olan düğümlerin color değeri colors.secondaryNode olmalıdır.
-    10.leaf olan düğümlerin rengi colors.leaf olmalıdır.
+
+
+    8. Ana nodenin color değeri #4169E1 olmalıdır.
+    9.Ana düğüme bağlı olan düğümlerin color değeri #FFD93D olmalıdır.
+    10.leaf olan düğümlerin rengi #4ECDC4 olmalıdır.
     11.Ana node dışıda kalan bütün nodlerin birbiriyle uzaklığı yatayda 150px dikeyde 150px olmalıdır. Ana nodenin altında bağlı nodeler olsun ve aralarında boşluk olsun. o nodelere bağlı olan leaflerin arasında yatayda 350px dikeyde 350px olmalıdır. Birbirlerinin üzerine asla gelmesinler. bir nodenin widthi 300 heighti 200 ona göre hesap yap 
     
     Node içeriği aşağıdaki  şekildeki yapıya uygun  olmalıdır. dal ve yaprakta verilen veriler konuyla direkt ilişkili olmalıdır temp data kullanma.VERİLERİN TEMPLATE VERİ OLMASIN MOCK VERİ OLMASIN ANA  KONU NEYSE ONUN ALTINDA BULUNABİLECEK KONULARI VE BUNLARIN İÇERİİSİNDE BULUNABİLECK-TRİCKLER İPUCLARINI İÇERSİN:

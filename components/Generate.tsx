@@ -18,10 +18,46 @@ const Generate: React.FC<GenerateProps> = ({ onGenerateComplete }) => {
   const { data, loading } = useAppSelector((state) => state.mindmap);
 
   useEffect(() => {
+    // IndexedDB'yi aç
+    const request = indexedDB.open('mindmapDB', 1);
+
+    request.onerror = (event) => {
+      console.error('IndexedDB açılırken hata oluştu:', event);
+    };
+
+    request.onupgradeneeded = (event: any) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('mindmaps')) {
+        db.createObjectStore('mindmaps', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (data) {
+      // Verileri IndexedDB'ye kaydet
+      const request = indexedDB.open('mindmapDB', 1);
+
+      request.onsuccess = (event: any) => {
+        const db = event.target.result;
+        const transaction = db.transaction(['mindmaps'], 'readwrite');
+        const store = transaction.objectStore('mindmaps');
+
+        const mindmapData = {
+          title: input,
+          nodes: data.nodes,
+          edges: data.edges,
+          educationLevel,
+          difficulty,
+          date: new Date().toISOString()
+        };
+
+        store.add(mindmapData);
+      };
+
       onGenerateComplete(data.nodes, data.edges);
     }
-  }, [data, onGenerateComplete]);
+  }, [data, onGenerateComplete, input, educationLevel, difficulty]);
 
   const handleGenerate = () => {
     dispatch(generateMindmap({ topic: input, educationLevel, difficulty }));

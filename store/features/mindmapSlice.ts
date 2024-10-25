@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Edge, Node, MindmapData } from '../../data/types';
-import { applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange } from 'reactflow';
+import { applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Node as ReactFlowNode, Edge as ReactFlowEdge } from 'reactflow';
 
 interface MindmapState {
   data: MindmapData | null;
@@ -52,46 +52,57 @@ const mindmapSlice = createSlice({
     },
     updateNodePosition: (state: MindmapState, action: PayloadAction<{ id: string; position: { x: number; y: number } }>) => {
       if (state.data?.nodes) {
-        const nodeIndex = state.data.nodes.findIndex((node: any) => node.id === action.payload.id);
+        const nodeIndex = state.data.nodes.findIndex((node) => node.id === action.payload.id);
         if (nodeIndex !== -1) {
           state.data.nodes[nodeIndex].position = action.payload.position;
         }
       }
     },
-    setGeneratedData: (state: MindmapState, action: PayloadAction<{ nodes: Node[]; edges: Edge[] }>) => {
+    updateNodeData: (state: MindmapState, action: PayloadAction<{ id: string; data: any }>) => {
+      if (state.data?.nodes) {
+        const nodeIndex = state.data.nodes.findIndex((node) => node.id === action.payload.id);
+        if (nodeIndex !== -1) {
+          state.data.nodes[nodeIndex].data = {
+            ...state.data.nodes[nodeIndex].data,
+            ...action.payload.data,
+          };
+        }
+      }
+    },
+    setGeneratedData: (state: MindmapState, action: PayloadAction<{ nodes: ReactFlowNode[]; edges: ReactFlowEdge[] }>) => {
       state.data = {
-        nodes: action.payload.nodes,
-        edges: action.payload.edges,
+        nodes: action.payload.nodes as Node[],
+        edges: action.payload.edges as Edge[],
       };
     },
     nodesChange: (state: MindmapState, action: PayloadAction<NodeChange[]>) => {
       if (state.data) {
-        state.data.nodes = applyNodeChanges(action.payload, state.data.nodes);
+        state.data.nodes = applyNodeChanges(action.payload, state.data.nodes) as Node[];
       }
     },
     edgesChange: (state: MindmapState, action: PayloadAction<EdgeChange[]>) => {
       if (state.data) {
-        state.data.edges = applyEdgeChanges(action.payload, state.data.edges);
+        state.data.edges = applyEdgeChanges(action.payload, state.data.edges) as Edge[];
       }
     },
   },
-  extraReducers: (builder: any) => {
+  extraReducers: (builder) => {
     builder
       .addCase(generateMindmap.pending, (state: MindmapState) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(generateMindmap.fulfilled, (state: MindmapState, action: any) => {
+      .addCase(generateMindmap.fulfilled, (state: MindmapState, action: PayloadAction<MindmapData>) => {
         state.loading = false;
         state.data = action.payload;
         state.error = null;
       })
-      .addCase(generateMindmap.rejected, (state: MindmapState, action: any) => {
+      .addCase(generateMindmap.rejected, (state: MindmapState, action: PayloadAction<any>) => {
         state.loading = false;
-        state.error = action.error.message || 'An error occurred';
+        state.error = action.payload?.message || 'An error occurred';
       });
   },
 });
 
-export const { clearMindmap, updateNodePosition, setGeneratedData, nodesChange, edgesChange } = mindmapSlice.actions;
+export const { clearMindmap, updateNodePosition, updateNodeData, setGeneratedData, nodesChange, edgesChange } = mindmapSlice.actions;
 export default mindmapSlice.reducer;

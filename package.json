@@ -17,6 +17,8 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "drawflow": "^0.0.60",
+    "html-to-image": "^1.11.11",
+    "jspdf": "^2.5.2",
     "lucide-react": "^0.453.0",
     "next": "15.0.0",
     "react": "^18.3.1",

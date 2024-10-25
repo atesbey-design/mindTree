@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, MessageSquare } from 'lucide-react'
+import Logo from './Logo'
 
 type ChatHistory = {
   id: string
@@ -8,12 +9,28 @@ type ChatHistory = {
 }
 
 const styles = {
-  button: {
+  navbar: {
     position: 'fixed' as const,
     top: '16px',
+    left: '16px',
     right: '16px',
     zIndex: 50,
-    backgroundColor: 'rgb(255, 235, 59)', // Canlı sarı
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0 16px',
+  },
+
+  title: {
+    backgroundColor: 'rgb(255, 255, 255)',
+    padding: '8px 24px',
+    border: '4px solid rgb(0, 0, 0)',
+    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
+    fontSize: '20px',
+    fontWeight: 'bold',
+  },
+  button: {
+    backgroundColor: 'rgb(255, 235, 59)',
     color: 'rgb(0, 0, 0)',
     fontWeight: 'bold',
     padding: '8px 16px',
@@ -28,7 +45,7 @@ const styles = {
   },
   historyContainer: {
     position: 'fixed' as const,
-    top: '70px',
+    top: '80px',
     right: '16px',
     width: '256px',
     backgroundColor: 'rgb(255, 255, 255)',
@@ -54,7 +71,7 @@ const styles = {
     transition: 'background-color 0.3s ease',
   },
   listItemHover: {
-    backgroundColor: 'rgb(255, 235, 59)', // Canlı sarı
+    backgroundColor: 'rgb(255, 235, 59)',
   },
   listItemTitle: {
     fontWeight: 'bold',
@@ -64,16 +81,50 @@ const styles = {
   },
 }
 
-export default function History() {
+export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
-    { id: '1', title: 'AI Ethics Discussion', date: '2023-06-15' },
-    { id: '2', title: 'Machine Learning Basics', date: '2023-06-14' },
-    { id: '3', title: 'Future of Robotics', date: '2023-06-13' },
-  ])
+  const [currentMindmap, setCurrentMindmap] = useState('')
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([])
+
+  useEffect(() => {
+    const request = indexedDB.open('mindmapDB', 1)
+    
+    request.onsuccess = (event: any) => {
+      const db = event.target.result
+      const transaction = db.transaction(['mindmaps'], 'readonly')
+      const store = transaction.objectStore('mindmaps')
+      
+      const getRequest = store.getAll()
+      
+      getRequest.onsuccess = () => {
+        const mindmaps = getRequest.result
+        if (mindmaps && mindmaps.length > 0) {
+          const latestMindmap = mindmaps[mindmaps.length - 1]
+          setCurrentMindmap(latestMindmap.title)
+          setChatHistory(mindmaps.map((map: any, index: number) => ({
+            id: index.toString(),
+            title: map.title,
+            date: new Date(map.date).toLocaleDateString()
+          })))
+        }
+      }
+    }
+  }, [])
 
   return (
-    <div>
+    <div style={styles.navbar}>
+      <div 
+        onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
+        onMouseLeave={(e) => Object.assign(e.currentTarget.style, { boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)', transform: 'none' })}
+      >
+        <Logo />
+       
+      </div>
+
+      <div style={styles.title}>
+        {currentMindmap || 'MindTree'}
+      </div>
+
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={styles.button}
