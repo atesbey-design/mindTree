@@ -1,170 +1,279 @@
 'use client';
 
-import React, { useState } from 'react';
-import ReactFlow, { Background, Controls, MiniMap, Node, Edge } from 'reactflow';
-import 'reactflow/dist/style.css';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAppDispatch, useAppSelector } from '@/hooks/redux';
+import { generateMindmap, setGeneratedData, clearMindmap } from '@/store/features/mindmapSlice';
+import { useRouter } from 'next/navigation';
 
-const GeneratePage: React.FC = () => {
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+const Generate: React.FC = () => {
   const [input, setInput] = useState('');
   const [educationLevel, setEducationLevel] = useState('');
   const [difficulty, setDifficulty] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const hasSavedToIndexedDB = useRef(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerate = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/mindmap-generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topic: input,
+  const dispatch = useAppDispatch();
+  const { data, loading } = useAppSelector((state) => state.mindmap);
+  const router = useRouter();
+
+  useEffect(() => {
+    dispatch(clearMindmap());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (data && isGenerating && !hasSavedToIndexedDB.current) {
+      const request = indexedDB.open('mindmapDB', 1);
+
+      request.onupgradeneeded = (event: any) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('mindmaps')) {
+          db.createObjectStore('mindmaps', { keyPath: 'id', autoIncrement: true });
+        }
+      };
+
+      request.onsuccess = (event: any) => {
+        const db = event.target.result;
+        const transaction = db.transaction(['mindmaps'], 'readwrite');
+        const store = transaction.objectStore('mindmaps');
+
+        const mindmapData = {
+          title: input,
+          nodes: data.nodes,
+          edges: data.edges,
           educationLevel,
           difficulty,
-        }),
-      });
+          date: new Date().toISOString()
+        };
 
-      console.log(response);
+        const addRequest = store.add(mindmapData);
+        
+        addRequest.onsuccess = (event: any) => {
+          const id = event.target.result;
+          router.push(`/map/${id}`);
+          hasSavedToIndexedDB.current = true;
+          dispatch(clearMindmap());
+        };
 
-      if (!response.ok) {
-        throw new Error('Failed to generate mindmap');
-      }
+        addRequest.onerror = (event: any) => {
+          console.error('Veri eklenirken hata oluştu:', event);
+        };
+      };
 
-      const data = await response.json();
-      setNodes(data.nodes);
-      setEdges(data.edges);
-    } catch (error) {
-      console.error('Error generating mindmap:', error);
-      // You might want to show an error message to the user here
-    } finally {
-      setIsLoading(false);
+      request.onerror = (event) => {
+        console.error('IndexedDB açılırken hata oluştu:', event);
+      };
+
+      return () => {
+        setInput('');
+        setEducationLevel('');
+        setDifficulty('');
+        hasSavedToIndexedDB.current = false;
+        setIsGenerating(false);
+      };
     }
+  }, [data, isGenerating, input, educationLevel, difficulty, router, dispatch]);
+
+  const handleGenerate = () => {
+    if (!input || !educationLevel || !difficulty) {
+      setError('Lütfen tüm alanları doldurun!');
+      return;
+    }
+    setError('');
+    setIsGenerating(true);
+    dispatch(generateMindmap({ topic: input, educationLevel, difficulty }));
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#FF6B6B', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        padding: '20px',
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: '10px',
-        boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)'
-      }}>
-        <select
-          value={educationLevel}
-          onChange={(e) => setEducationLevel(e.target.value)}
-          style={{ 
-            marginBottom: '10px', 
-            padding: '10px', 
-            fontSize: '16px',
-            border: '3px solid #000',
-            borderRadius: '0',
-            backgroundColor: '#4ECDC4',
-            color: '#000',
-            boxShadow: '5px 5px 0px #000',
-            width: '300px',
-            appearance: 'none',
-            backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 10px top 50%',
-            backgroundSize: '12px auto',
-            paddingRight: '30px'
-          }}
-        >
-          <option value="">Eğitim Seviyesi Seçin</option>
-          <option value="ilkokul">İlkokul</option>
-          <option value="ortaokul">Ortaokul</option>
-          <option value="lise">Lise</option>
-          <option value="universite">Üniversite</option>
-        </select>
-        <select
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          style={{ 
-            marginBottom: '10px', 
-            padding: '10px', 
-            fontSize: '16px',
-            border: '3px solid #000',
-            borderRadius: '0',
-            backgroundColor: '#4ECDC4',
-            color: '#000',
-            boxShadow: '5px 5px 0px #000',
-            width: '300px',
-            appearance: 'none',
-            backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 10px top 50%',
-            backgroundSize: '12px auto',
-            paddingRight: '30px'
-          }}
-        >
-          <option value="">Zorluk Seviyesi Seçin</option>
-          <option value="baslangic">Başlangıç</option>
-          <option value="orta">Orta</option>
-          <option value="ileri">İleri</option>
-        </select>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Konunuzu girin"
-          style={{ 
-            marginBottom: '10px', 
-            padding: '10px', 
-            fontSize: '16px',
-            border: '3px solid #000',
-            borderRadius: '0',
-            backgroundColor: '#fff',
-            color: '#000',
-            boxShadow: '5px 5px 0px #000',
-            width: '300px',
-            transition: 'all 0.1s ease-in-out',
-          }}
-        />
-        <button 
-          onClick={handleGenerate} 
-          disabled={isLoading}
-          style={{ 
-            padding: '10px 20px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            backgroundColor: isLoading ? '#ccc' : '#FFD93D',
-            border: '3px solid #000',
-            borderRadius: '0',
-            color: '#000',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            boxShadow: '5px 5px 0px #000',
-            transition: 'all 0.1s ease-in-out',
-            width: '150px'
-          }}
-        >
-          {isLoading ? 'Oluşturuluyor...' : 'Oluştur'}
-        </button>
+    <div className="generate-container">
+      <div className="generate-form">
+        <h1 className="form-title">MINDTREE OLUŞTUR</h1>
+        
+        {error && (
+          <div className="error-message">
+            <p>{error}</p>
+          </div>
+        )}
+
+        <div className="form-fields">
+          <div className="form-field">
+            <label htmlFor="educationLevel" className="field-label">
+              Eğitim Seviyesi
+            </label>
+            <select
+              id="educationLevel"
+              value={educationLevel}
+              onChange={(e) => setEducationLevel(e.target.value)}
+              className="field-input education-level"
+            >
+              <option value="">Seçin</option>
+              <option value="ilkokul">İlkokul</option>
+              <option value="ortaokul">Ortaokul</option>
+              <option value="lise">Lise</option>
+              <option value="universite">Üniversite</option>
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="difficulty" className="field-label">
+              Zorluk Seviyesi
+            </label>
+            <select
+              id="difficulty"
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              className="field-input difficulty"
+            >
+              <option value="">Seçin</option>
+              <option value="baslangic">Başlangıç</option>
+              <option value="orta">Orta</option>
+              <option value="ileri">İleri</option>
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="topic" className="field-label">
+              Konu
+            </label>
+            <input
+              id="topic"
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Konunuzu girin"
+              className="field-input topic"
+            />
+          </div>
+
+          <button 
+            onClick={handleGenerate} 
+            disabled={loading}
+            className="generate-button"
+          >
+            {loading ? 'OLUŞTURULUYOR...' : 'OLUŞTUR'}
+          </button>
+        </div>
       </div>
-      <div style={{ flex: 1, border: '3px solid #000', margin: '0 20px 20px' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          fitView
-        >
-          <Background color="#000" gap={20} />
-          <Controls />
-          <MiniMap style={{ backgroundColor: '#4ECDC4', border: '3px solid #000' }} />
-        </ReactFlow>
-      </div>
+
+      <style jsx>{`
+        .generate-container {
+          min-height: 100vh;
+          background-color: #FFD700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          font-family: 'Arial', sans-serif;
+        }
+
+        .generate-form {
+          background-color: white;
+          border: 8px solid black;
+          padding: 40px;
+          max-width: 600px;
+          width: 100%;
+          transform: rotate(1deg);
+          box-shadow: 16px 16px 0 0 rgba(0,0,0,1);
+        }
+
+        .form-title {
+          font-size: 48px;
+          font-weight: bold;
+          margin-bottom: 40px;
+          color: black;
+          transform: rotate(-2deg);
+          text-align: center;
+        }
+
+        .error-message {
+          background-color: #FF6B6B;
+          color: white;
+          padding: 20px;
+          margin-bottom: 30px;
+          border: 4px solid black;
+          transform: rotate(1deg);
+        }
+
+        .error-message p {
+          font-weight: bold;
+          font-size: 18px;
+          margin: 0;
+        }
+
+        .form-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 30px;
+        }
+
+        .form-field {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .field-label {
+          font-size: 24px;
+          font-weight: bold;
+          color: black;
+          transform: rotate(-1deg);
+        }
+
+        .field-input {
+          width: 100%;
+          padding: 15px;
+          font-size: 18px;
+          border: 4px solid black;
+          font-weight: bold;
+          transform: rotate(1deg);
+        }
+
+        .field-input:focus {
+          outline: none;
+          box-shadow: 8px 8px 0 0 rgba(0,0,0,1);
+        }
+
+        .education-level {
+          background-color: #4ECDC4;
+        }
+
+        .difficulty {
+          background-color: #45B7D9;
+        }
+
+        .topic {
+          background-color: #FF6B6B;
+        }
+
+        .generate-button {
+          width: 100%;
+          padding: 20px;
+          font-size: 24px;
+          font-weight: bold;
+          background-color: #9B59B6;
+          border: 4px solid black;
+          color: white;
+          cursor: pointer;
+          transform: rotate(-1deg);
+          transition: transform 0.3s ease;
+        }
+
+        .generate-button:hover {
+          transform: rotate(0deg);
+        }
+
+        .generate-button:focus {
+          outline: none;
+          box-shadow: 8px 8px 0 0 rgba(0,0,0,1);
+        }
+
+        .generate-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
 };
 
-export default GeneratePage;
+export default Generate;

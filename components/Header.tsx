@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X, MessageSquare } from 'lucide-react'
+import { X, MessageSquare, Plus } from 'lucide-react'
 import Logo from './Logo'
+import { useRouter, useParams } from 'next/navigation'
 
 type ChatHistory = {
   id: string
@@ -25,7 +26,6 @@ const styles = {
     backgroundColor: 'rgb(255, 255, 255)',
     padding: '8px 24px',
     border: '4px solid rgb(0, 0, 0)',
-    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
     fontSize: '20px',
     fontWeight: 'bold',
   },
@@ -38,6 +38,7 @@ const styles = {
     boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
+    marginLeft: '8px',
   },
   buttonHover: {
     boxShadow: 'none',
@@ -69,6 +70,7 @@ const styles = {
     padding: '8px',
     marginBottom: '8px',
     transition: 'background-color 0.3s ease',
+    cursor: 'pointer',
   },
   listItemHover: {
     backgroundColor: 'rgb(255, 235, 59)',
@@ -79,14 +81,20 @@ const styles = {
   listItemDate: {
     fontSize: '14px',
   },
+  buttonContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  }
 }
 
 export default function Header() {
+  const router = useRouter()
+  const params = useParams()
   const [isOpen, setIsOpen] = useState(false)
   const [currentMindmap, setCurrentMindmap] = useState('')
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([])
 
-  useEffect(() => {
+  const fetchMindmapData = () => {
     const request = indexedDB.open('mindmapDB', 1)
     
     request.onsuccess = (event: any) => {
@@ -94,45 +102,82 @@ export default function Header() {
       const transaction = db.transaction(['mindmaps'], 'readonly')
       const store = transaction.objectStore('mindmaps')
       
-      const getRequest = store.getAll()
-      
-      getRequest.onsuccess = () => {
-        const mindmaps = getRequest.result
+      if (params.id) {
+        const getRequest = store.get(params.id)
+        getRequest.onsuccess = () => {
+          const mindmap = getRequest.result
+          if (mindmap) {
+            setCurrentMindmap(mindmap.title)
+          }
+        }
+      }
+
+      const getAllRequest = store.getAll()
+      getAllRequest.onsuccess = () => {
+        const mindmaps = getAllRequest.result
         if (mindmaps && mindmaps.length > 0) {
-          const latestMindmap = mindmaps[mindmaps.length - 1]
-          setCurrentMindmap(latestMindmap.title)
-          setChatHistory(mindmaps.map((map: any, index: number) => ({
-            id: index.toString(),
+          setChatHistory(mindmaps.map((map: any) => ({
+            id: map.id.toString(),
             title: map.title,
             date: new Date(map.date).toLocaleDateString()
           })))
         }
       }
     }
-  }, [])
+  }
+
+  useEffect(() => {
+    fetchMindmapData()
+
+    // Set up event listener for database changes
+    const dbChangeHandler = () => {
+      fetchMindmapData()
+    }
+
+    window.addEventListener('mindmapDBChange', dbChangeHandler)
+
+    return () => {
+      window.removeEventListener('mindmapDBChange', dbChangeHandler)
+    }
+  }, [params.id])
+
+  const handleNewMindmap = () => {
+    router.push('/generate')
+  }
+
+  const handleMindmapClick = (id: string) => {
+    router.push(`/map/${id}`)
+  }
 
   return (
     <div style={styles.navbar}>
-      <div 
-        onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
-        onMouseLeave={(e) => Object.assign(e.currentTarget.style, { boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)', transform: 'none' })}
-      >
+      <div>
         <Logo />
-       
       </div>
 
       <div style={styles.title}>
         {currentMindmap || 'MindTree'}
       </div>
 
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={styles.button}
-        onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
-        onMouseLeave={(e) => Object.assign(e.currentTarget.style, { boxShadow: styles.button.boxShadow, transform: 'none' })}
-      >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-      </button>
+      <div style={styles.buttonContainer}>
+        <button
+          onClick={handleNewMindmap}
+          style={styles.button}
+          onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
+          onMouseLeave={(e) => Object.assign(e.currentTarget.style, { boxShadow: styles.button.boxShadow, transform: 'none' })}
+        >
+          <Plus size={24} />
+        </button>
+
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={styles.button}
+          onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
+          onMouseLeave={(e) => Object.assign(e.currentTarget.style, { boxShadow: styles.button.boxShadow, transform: 'none' })}
+        >
+          {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+        </button>
+      </div>
 
       {isOpen && (
         <div style={styles.historyContainer}>
@@ -142,6 +187,7 @@ export default function Header() {
               <li
                 key={chat.id}
                 style={styles.listItem}
+                onClick={() => handleMindmapClick(chat.id)}
                 onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.listItemHover)}
                 onMouseLeave={(e) => Object.assign(e.currentTarget.style, { backgroundColor: 'transparent' })}
               >

@@ -9,9 +9,23 @@ const Footer = () => {
   const exportToPng = async () => {
     const element = document.querySelector('.react-flow') as HTMLElement;
     if (element) {
-      const dataUrl = await toPng(element, { quality: 1 });
+      // Hide all UI controls before export
+      const controls = document.querySelectorAll('.custom-controls, .export-buttons');
+      controls.forEach(control => (control as HTMLElement).style.display = 'none');
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        backgroundColor: '#FF6B6B',
+        style: {
+          transform: 'scale(1)',
+        }
+      });
+
+      // Show UI controls again after export
+      controls.forEach(control => (control as HTMLElement).style.display = 'flex');
+
       const link = document.createElement('a');
-      link.download = 'mindmap.png';
+      link.download = 'mindtree.png';
       link.href = dataUrl;
       link.click();
     }
@@ -20,25 +34,42 @@ const Footer = () => {
   const exportToPdf = async () => {
     const element = document.querySelector('.react-flow') as HTMLElement;
     if (element) {
-      const dataUrl = await toPng(element, { quality: 1 });
+      // Hide all UI controls before export
+      const controls = document.querySelectorAll('.custom-controls, .export-buttons');
+      controls.forEach(control => (control as HTMLElement).style.display = 'none');
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        backgroundColor: '#FF6B6B',
+        style: {
+          transform: 'scale(1)',
+        }
+      });
+
+      // Show UI controls again after export
+      controls.forEach(control => (control as HTMLElement).style.display = 'flex');
+
       const pdf = new jsPDF('landscape');
       const imgProps = pdf.getImageProperties(dataUrl);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('mindmap.pdf');
+      pdf.save('mindtree.pdf');
     }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '15px',
-      right: '15px',
-      display: 'flex',
-      gap: '8px',
-      zIndex: 1000,
-    }}>
+    <div 
+      className="export-buttons"
+      style={{
+        position: 'fixed',
+        bottom: '15px',
+        right: '15px',
+        display: 'flex',
+        gap: '8px',
+        zIndex: 1000,
+      }}
+    >
       <button
         onClick={exportToPng}
         style={{

@@ -1,3 +1,4 @@
+// mindmapSlice.js veya mindmapSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Edge, Node, MindmapData } from '../../data/types';
 import { applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Node as ReactFlowNode, Edge as ReactFlowEdge } from 'reactflow';

@@ -22,15 +22,14 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
     setMessages(prevMessages => [...prevMessages, { role: 'user', content: inputMessage }]);
     setIsLoading(true);
     
-    const prompt = `"${selectedNode.label}"  konusunda uzman birisin bu konuda sana sorularn soruları bir öğretmen gibi cevaplamalısın.Cevapların örnekler içermeli ve bu örnekler sayesinde kullanıcı öğrenmeli. Cevaplarında kod vs olmamalı. sasdece bilgi aktarımı olmalı.İngilizce cevap verme.Sorulan soru ${inputMessage} bu soruya cevap verirken kullanıcının bilgi seviyesine göre cevap vermelisin.Sadece soruya cevap ver ek bilgi verme.Asla ama asla kim olduğunu ve ne olduğunu anlatma. Öğretmen olduğunu da söyleme.`;
-    
+
     try {
       const response = await fetch('/api/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ selectedNode, inputMessage }), // inputMessage eklendi
       });
 
       if (!response.ok) {
@@ -50,13 +49,12 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
 
   return (
     <div style={{
-      backgroundColor: '#4ECDC4', // Changed background color to a different neobrutalism color
-    
-      padding: '30px',
+      backgroundColor: '#4ECDC4',
+      padding: '30px', 
       maxWidth: '700px',
       margin: '30px auto',
-  
       position: 'relative',
+      borderRadius: '15px',
     }}>
   
       <h2 style={{ color: '#2C3E50', textAlign: 'center', marginBottom: '30px', fontSize: '28px', fontWeight: 'bold' }}>
@@ -70,6 +68,7 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
         overflowY: 'auto',
         marginBottom: '30px',
         border: '3px solid #000000',
+        boxShadow: '6px 6px 0px #000000',
       }}>
         {messages.length === 0 ? (
           <div style={{
@@ -117,6 +116,7 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
             border: '3px solid #000000',
             fontSize: '18px',
             backgroundColor: '#FFFFFF',
+            boxShadow: '4px 4px 0px #000000',
           }}
         />
         <button
