@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { generateMindmap, setGeneratedData, clearMindmap } from '@/store/features/mindmapSlice';
 import { useRouter } from 'next/navigation';
+import { CSSProperties } from 'react';
 
 const Generate: React.FC = () => {
   const [input, setInput] = useState('');
@@ -84,27 +85,112 @@ const Generate: React.FC = () => {
     dispatch(generateMindmap({ topic: input, educationLevel, difficulty }));
   };
 
+  const containerStyle: CSSProperties = {
+    minHeight: '100vh',
+    backgroundColor: '#FF6B6B',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    fontFamily: 'Arial, sans-serif'
+  };
+
+  const formStyle: CSSProperties = {
+    backgroundColor: 'white',
+    border: '8px solid black',
+    padding: '40px',
+    maxWidth: '600px',
+    width: '100%',
+    transform: 'rotate(1deg)',
+    boxShadow: '16px 16px 0 0 rgba(0,0,0,1)'
+  };
+
+  const titleStyle: CSSProperties = {
+    fontSize: '48px',
+    fontWeight: 'bold',
+    marginBottom: '40px',
+    color: 'black',
+    transform: 'rotate(-2deg)',
+    textAlign: 'center' as const
+  };
+
+  const errorStyle: CSSProperties = {
+    backgroundColor: '#FF6B6B',
+    color: 'white',
+    padding: '20px',
+    marginBottom: '30px',
+    border: '4px solid black',
+    transform: 'rotate(1deg)'
+  };
+
+  const errorTextStyle: CSSProperties = {
+    fontWeight: 'bold',
+    fontSize: '18px',
+    margin: 0
+  };
+
+  const formFieldsStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '30px'
+  };
+
+  const formFieldStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '10px'
+  };
+
+  const labelStyle: CSSProperties = {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'black',
+    transform: 'rotate(-1deg)'
+  };
+
+  const inputStyle: CSSProperties = {
+    width: '100%',
+    padding: '15px',
+    fontSize: '18px',
+    border: '4px solid black',
+    fontWeight: 'bold',
+    transform: 'rotate(1deg)'
+  };
+
+  const buttonStyle: CSSProperties = {
+    width: '100%',
+    padding: '20px',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    backgroundColor: '#9B59B6',
+    border: '4px solid black',
+    color: 'white',
+    cursor: 'pointer',
+    transform: 'rotate(-1deg)',
+    transition: 'transform 0.3s ease'
+  };
+
   return (
-    <div className="generate-container">
-      <div className="generate-form">
-        <h1 className="form-title">MINDTREE OLUŞTUR</h1>
+    <div style={containerStyle}>
+      <div style={formStyle}>
+        <h1 style={titleStyle}>MINDTREE OLUŞTUR</h1>
         
         {error && (
-          <div className="error-message">
-            <p>{error}</p>
+          <div style={errorStyle}>
+            <p style={errorTextStyle}>{error}</p>
           </div>
         )}
 
-        <div className="form-fields">
-          <div className="form-field">
-            <label htmlFor="educationLevel" className="field-label">
+        <div style={formFieldsStyle}>
+          <div style={formFieldStyle}>
+            <label htmlFor="educationLevel" style={labelStyle}>
               Eğitim Seviyesi
             </label>
             <select
               id="educationLevel"
               value={educationLevel}
               onChange={(e) => setEducationLevel(e.target.value)}
-              className="field-input education-level"
+              style={{...inputStyle, backgroundColor: '#4ECDC4'}}
             >
               <option value="">Seçin</option>
               <option value="ilkokul">İlkokul</option>
@@ -114,15 +200,15 @@ const Generate: React.FC = () => {
             </select>
           </div>
 
-          <div className="form-field">
-            <label htmlFor="difficulty" className="field-label">
+          <div style={formFieldStyle}>
+            <label htmlFor="difficulty" style={labelStyle}>
               Zorluk Seviyesi
             </label>
             <select
               id="difficulty"
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value)}
-              className="field-input difficulty"
+              style={{...inputStyle, backgroundColor: '#45B7D9'}}
             >
               <option value="">Seçin</option>
               <option value="baslangic">Başlangıç</option>
@@ -131,8 +217,8 @@ const Generate: React.FC = () => {
             </select>
           </div>
 
-          <div className="form-field">
-            <label htmlFor="topic" className="field-label">
+          <div style={formFieldStyle}>
+            <label htmlFor="topic" style={labelStyle}>
               Konu
             </label>
             <input
@@ -141,137 +227,23 @@ const Generate: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Konunuzu girin"
-              className="field-input topic"
+              style={{...inputStyle, backgroundColor: '#FF6B6B'}}
             />
           </div>
 
           <button 
             onClick={handleGenerate} 
             disabled={loading}
-            className="generate-button"
+            style={{
+              ...buttonStyle,
+              opacity: loading ? 0.5 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? 'OLUŞTURULUYOR...' : 'OLUŞTUR'}
           </button>
         </div>
       </div>
-
-      <style jsx>{`
-        .generate-container {
-          min-height: 100vh;
-          background-color: #FFD700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          font-family: 'Arial', sans-serif;
-        }
-
-        .generate-form {
-          background-color: white;
-          border: 8px solid black;
-          padding: 40px;
-          max-width: 600px;
-          width: 100%;
-          transform: rotate(1deg);
-          box-shadow: 16px 16px 0 0 rgba(0,0,0,1);
-        }
-
-        .form-title {
-          font-size: 48px;
-          font-weight: bold;
-          margin-bottom: 40px;
-          color: black;
-          transform: rotate(-2deg);
-          text-align: center;
-        }
-
-        .error-message {
-          background-color: #FF6B6B;
-          color: white;
-          padding: 20px;
-          margin-bottom: 30px;
-          border: 4px solid black;
-          transform: rotate(1deg);
-        }
-
-        .error-message p {
-          font-weight: bold;
-          font-size: 18px;
-          margin: 0;
-        }
-
-        .form-fields {
-          display: flex;
-          flex-direction: column;
-          gap: 30px;
-        }
-
-        .form-field {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .field-label {
-          font-size: 24px;
-          font-weight: bold;
-          color: black;
-          transform: rotate(-1deg);
-        }
-
-        .field-input {
-          width: 100%;
-          padding: 15px;
-          font-size: 18px;
-          border: 4px solid black;
-          font-weight: bold;
-          transform: rotate(1deg);
-        }
-
-        .field-input:focus {
-          outline: none;
-          box-shadow: 8px 8px 0 0 rgba(0,0,0,1);
-        }
-
-        .education-level {
-          background-color: #4ECDC4;
-        }
-
-        .difficulty {
-          background-color: #45B7D9;
-        }
-
-        .topic {
-          background-color: #FF6B6B;
-        }
-
-        .generate-button {
-          width: 100%;
-          padding: 20px;
-          font-size: 24px;
-          font-weight: bold;
-          background-color: #9B59B6;
-          border: 4px solid black;
-          color: white;
-          cursor: pointer;
-          transform: rotate(-1deg);
-          transition: transform 0.3s ease;
-        }
-
-        .generate-button:hover {
-          transform: rotate(0deg);
-        }
-
-        .generate-button:focus {
-          outline: none;
-          box-shadow: 8px 8px 0 0 rgba(0,0,0,1);
-        }
-
-        .generate-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 };

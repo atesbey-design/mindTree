@@ -6,83 +6,156 @@ import { CSSProperties } from 'react'
 
 const styles: { [key: string]: CSSProperties } = {
   container: {
+    margin: '0 auto',
     minHeight: '100vh',
-    backgroundColor: '#FACC15',
+    backgroundColor: '#FF6B6B',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '1rem',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden',
   },
   content: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFD93D',
     border: '8px solid black',
-    padding: '2rem',
-    maxWidth: '42rem',
+    padding: '3rem',
+    maxWidth: '60rem',
     width: '100%',
+    borderRadius: '20px',
+    boxShadow: '15px 15px 0 rgba(0,0,0,0.8)',
+    position: 'relative',
+    zIndex: 2,
   },
   heading: {
-    fontSize: '6rem',
-    fontWeight: 'bold',
+    fontSize: '12rem',
+    fontWeight: '900',
     color: 'black',
     marginBottom: '1rem',
+    textAlign: 'center',
+    textShadow: '8px 8px 0 #4ECDC4',
+    letterSpacing: '0.2em',
   },
   subheading: {
-    fontSize: '2.25rem',
+    fontSize: '3rem',
     fontWeight: 'bold',
     color: 'black',
     marginBottom: '2rem',
     textTransform: 'uppercase',
+    textAlign: 'center',
+    textShadow: '4px 4px 0 #4ECDC4',
   },
   paragraph: {
-    fontSize: '1.25rem',
-    marginBottom: '2rem',
+    fontSize: '1.5rem',
+    marginBottom: '2.5rem',
     color: 'black',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   link: {
-    display: 'inline-block',
-    backgroundColor: '#3B82F6',
-    color: 'white',
-    fontSize: '1.5rem',
+    display: 'block',
+    width: 'fit-content',
+    margin: '0 auto',
+    backgroundColor: '#4ECDC4',
+    color: 'black',
+    fontSize: '1.8rem',
     fontWeight: 'bold',
-    padding: '1rem 2rem',
-    border: '4px solid black',
+    padding: '1.2rem 3rem',
+    border: '5px solid black',
     textDecoration: 'none',
-    transition: 'transform 0.3s ease',
+    borderRadius: '15px',
+    boxShadow: '8px 8px 0 rgba(0,0,0,0.8)',
+    transition: 'all 0.3s ease',
   },
-  shape1: {
+  decorCircle1: {
     position: 'absolute',
-    top: '2.5rem',
-    left: '2.5rem',
-    width: '5rem',
-    height: '5rem',
-    backgroundColor: '#22C55E',
+    top: '5%',
+    left: '10%',
+    width: '200px',
+    height: '200px',
+    backgroundColor: '#4ECDC4',
     border: '8px solid black',
+    borderRadius: '50%',
+    zIndex: 1,
   },
-  shape2: {
+  decorCircle2: {
     position: 'absolute',
-    bottom: '2.5rem',
-    right: '2.5rem',
-    width: '8rem',
-    height: '8rem',
-    backgroundColor: '#EC4899',
+    bottom: '10%',
+    right: '15%',
+    width: '150px',
+    height: '150px',
+    backgroundColor: '#FFD93D',
     border: '8px solid black',
+    borderRadius: '50%',
+    zIndex: 1,
   },
+  decorSquare: {
+    position: 'absolute',
+    top: '20%',
+    right: '20%',
+    width: '120px',
+    height: '120px',
+    backgroundColor: '#FF6B6B',
+    border: '8px solid black',
+    transform: 'rotate(45deg)',
+    zIndex: 1,
+  }
 }
 
 export default function NotFound() {
   return (
     <div style={styles.container}>
+      <motion.div 
+        style={styles.decorCircle1}
+        animate={{
+          y: [0, -30, 0],
+          rotate: 360,
+        }}
+        transition={{
+          y: {
+            duration: 2,
+            repeat: Infinity,
+            repeatType: "reverse"
+          },
+          rotate: {
+            duration: 8,
+            repeat: Infinity,
+            ease: "linear"
+          }
+        }}
+      />
+      <motion.div 
+        style={styles.decorSquare}
+        animate={{
+          rotate: [45, 225, 45],
+          scale: [1, 1.2, 1],
+        }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+        }}
+      />
+      <motion.div 
+        style={styles.decorCircle2}
+        animate={{
+          x: [0, 30, 0],
+          scale: [1, 1.2, 1],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+        }}
+      />
       <div style={styles.content}>
         <motion.h1 
           style={styles.heading}
           animate={{ 
-            x: [-10, 10, -10],
+            y: [-20, 0, -20],
           }}
           transition={{ 
-            duration: 0.5,
+            duration: 2,
             repeat: Infinity,
-            repeatType: "reverse"
           }}
         >
           404
@@ -92,6 +165,7 @@ export default function NotFound() {
         </h2>
         <p style={styles.paragraph}>
           Aradığınız sayfa ya silinmiş ya da hiç var olmamış olabilir.
+          Lütfen ana sayfaya dönerek devam edin.
         </p>
         <Link 
           href="/"
@@ -101,31 +175,10 @@ export default function NotFound() {
           ANA SAYFAYA DÖN
         </Link>
       </div>
-      <motion.div 
-        style={styles.shape1}
-        animate={{
-          rotate: [0, 90, 180, 270, 360],
-        }}
-        transition={{
-          duration: 10,
-          ease: "linear",
-          repeat: Infinity,
-        }}
-      />
-      <motion.div 
-        style={styles.shape2}
-        animate={{
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-        }}
-      />
       <style jsx>{`
         .home-link:hover {
-          transform: translate(4px, -4px);
-          box-shadow: -8px 8px 0 0 rgba(0,0,0,1);
+          transform: translate(-4px, -4px);
+          box-shadow: 12px 12px 0 rgba(0,0,0,0.8);
         }
       `}</style>
     </div>

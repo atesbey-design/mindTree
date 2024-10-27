@@ -14,7 +14,8 @@ const Footer = () => {
       controls.forEach(control => (control as HTMLElement).style.display = 'none');
 
       const dataUrl = await toPng(element, {
-        quality: 1,
+        quality: 10, // Increased quality from 1 to 10
+        pixelRatio: 3, // Added higher pixel ratio for better resolution
         backgroundColor: '#FF6B6B',
         style: {
           transform: 'scale(1)',
@@ -39,7 +40,8 @@ const Footer = () => {
       controls.forEach(control => (control as HTMLElement).style.display = 'none');
 
       const dataUrl = await toPng(element, {
-        quality: 1,
+        quality: 10, // Increased quality from 1 to 10
+        pixelRatio: 3, // Added higher pixel ratio for better resolution
         backgroundColor: '#FF6B6B',
         style: {
           transform: 'scale(1)',

@@ -6,13 +6,12 @@ const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '
 export async function POST(req: NextRequest) {
   try {
     const { topic, educationLevel, difficulty } = await req.json();
-    console.log(topic, educationLevel, difficulty);
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     
     const prompt = 
     `Lütfen aşağıdaki konu, eğitim seviyesi ve zorluk düzeyine göre bir zihin haritası oluşturun. Kesinlikle template veri olmasın, gerçek verilere dayalı olsun:
-    
+        
     Konu: ${topic}
     Eğitim Seviyesi: ${educationLevel}
     Zorluk Düzeyi: ${difficulty}
@@ -25,43 +24,43 @@ export async function POST(req: NextRequest) {
     5. **Dinamik Düzenleme:** Node ve leaf sayısı önceden bilinmediği için pozisyon hesaplamaları dinamik olarak yapılmalı.
     6. **Node Boyutları:** Her node'un genişliği **300px**, yüksekliği ise **200px** olarak belirlenmelidir.
     7. **Veri Yapısı:** Node'lar ve edge'ler aşağıdaki yapıya uygun olmalıdır. Düğümlerin içerikleri konuyla direkt ilişkili olmalı, template veya mock veri kullanılmamalıdır.
-    8.Leaf nodelerde kesinlikle content ve tricks kullanılmalıdır. Content alanı o konu ile ilerleyişini takip eden bir yapıda olmalıdır. Tricks alanı ise o konu ile ilgili kısa ve öz bilgileri içermelidir. 
-
-    ### Matematiksel Modelleme:
+    8. **Leaf Node'lerde** kesinlikle \`content\` ve \`tricks\` kullanılmalıdır. \`Content\` alanı o konu ile ilgili ilerleyişi takip eden bilgileri içermeli, \`tricks\` ise o konuya dair kısa ve öz bilgileri içermelidir.
+    
+    ### Matematiksel Modelleme ve Pozisyon Hesaplamaları:
     - **Ana Node:** Pozisyonu sayfanın üst merkezinde olacak şekilde (örneğin, x=400, y=100).
     - **Child Node'lar:** Ana node'un altına, yatayda eşit aralıklarla dağıtılacak şekilde yerleştirilmeli. Her child node arasındaki yatay boşluk **150px**, dikey boşluk **150px** olmalıdır.
     - **Leaf Node'ler:** Her child node'un altında, yatayda eşit aralıklarla dağıtılacak şekilde yerleştirilmeli. Leaf node'ler arasındaki yatay boşluk **350px**, dikey boşluk **350px** olmalıdır.
-    - **Pozisyon Hesaplama Fonksiyonu:**
     
+    ### Pozisyon Hesaplama Fonksiyonu:
     const calculateNodePositions = (nodes) => {
         // Temel konfigürasyon
         const config = {
-            levelHeight: 450,    // Seviyeler arası dikey mesafe
+            levelHeight: 650,    // Seviyeler arası dikey mesafe
             nodeWidth: 600,      // Node genişliği
             nodeHeight: 400,     // Node yüksekliği
-            horizontalGapChild: 550, // Child node'lar arası yatay boşluk
-            horizontalGapLeaf: 850   // Leaf node'ler arası yatay boşluk
+            horizontalGapChild: 950, // Child node'lar arası yatay boşluk
+            horizontalGapLeaf: 1250   // Leaf node'ler arası yatay boşluk
         };
-
+    
         const calculatePositions = (nodeId, level = 0, horizontalIndex = 0) => {
             const node = nodes.find(n => n.id === nodeId);
             if (!node) return null;
-
+    
             // Child node'ları bul
             const children = nodes.filter(n => 
                 node.data.childLeafIds && node.data.childLeafIds.includes(n.id)
             );
-
+    
             // Yatay pozisyon hesaplama
             const totalWidth = (children.length - 1) * config.horizontalGapChild;
             const startX = 400 - (totalWidth / 2); // Ana node'un x pozisyonu 400 olarak varsayılmıştır
-
+    
             // Node'un yeni pozisyonu
             const newPosition = {
                 x: startX + (horizontalIndex * config.horizontalGapChild),
-                y: 100 + (level * config.levelHeight) // Ana node'un y pozisyonu 100 olarak varsayılmıştır
+               
             };
-
+    
             // Child node'ların pozisyonlarını hesapla
             const childPositions = children.map((child, index) => 
                 calculatePositions(
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
                     index
                 )
             );
-
+    
             // Leaf node'lerin pozisyonlarını hesapla
             children.forEach(child => {
                 const leafChildren = nodes.filter(n => 
@@ -85,25 +84,26 @@ export async function POST(req: NextRequest) {
                     };
                 });
             });
-
+    
             return {
                 ...node,
                 position: newPosition,
                 children: childPositions.filter(Boolean)
             };
         };
-
+    
         // Başlangıç olarak ana node'un pozisyonunu hesapla
         const mainNode = nodes.find(n => n.id === '1'); // Ana node'un id'si '1' olarak varsayılmıştır
         if (mainNode) {
             mainNode.position = { x: 400, y: 100 };
             calculatePositions(mainNode.id);
         }
-
+    
         return nodes;
     };
 
-    ### **Örnek JSON Yapısı:**
+    Yalnızca aşağıdaki JSON formatını döndürün. JSON dışındaki her türlü açıklama, bilgi veya karakter kesinlikle döndürülmemelidir.
+
     {
         "nodes": [
             {
@@ -116,7 +116,6 @@ export async function POST(req: NextRequest) {
                     "isLeaf": false,
                     "childLeafIds": ["2", "3", "4"]
                 }
-                    "tri
             },
             {
                 "id": "2",
@@ -130,93 +129,35 @@ export async function POST(req: NextRequest) {
                 }
             },
             {
-                "id": "3",
-                "type": "custom",
-                "position": { "x": 400, "y": 250 },
-                "data": {
-                    "label": "Dal: Optik",
-                    "color": "#FFD93D",
-                    "isLeaf": false,
-                    "childLeafIds": ["7", "8"]
-                }
-            },
-            {
-                "id": "4",
-                "type": "custom",
-                "position": { "x": 550, "y": 250 },
-                "data": {
-                    "label": "Dal: Termodinamik",
-                    "color": "#FFD93D",
-                    "isLeaf": false,
-                    "childLeafIds": ["9", "10"]
-                }
-            },
-            {
                 "id": "5",
                 "type": "custom",
-
                 "position": { "x": 50, "y": 400 },
-                "content": [
-                    { label: 'Konu Anlatımı', completed: false },
-                    { label: 'Örnek Sorular', completed: false },
-                    { label: 'Quiz', completed: false }
-                ],
-                  
                 "data": {
                     "label": "Yaprak: Hareket Yasaları",
                     "color": "#4ECDC4",
                     "isLeaf": true,
-                    "tricks": ["F=m.a", "Kuvvet kütle ile doğru orantılıdır.", 
-                    "v=u+at", "Hız, ilk hız ile ivme ile doğru orantılıdır.", 
-                    "s=ut+1/2at^2", "Yer değiştirme, ilk hız, ivme ve zamanın karesiyle doğru orantılıdır.", 
-                    "v^2=u^2+2as", "Hızın karesi, ilk hızın karesi ile ivme ile doğru orantılıdır."]
-                }
-            },
-            {
-                "id": "6",
-                "type": "custom",
-                "position": { "x": 350, "y": 400 },
-                "data": {
-                    "label": "Yaprak: Kuvvet ve Kütle",
-                    "color": "#4ECDC4",
-                    "isLeaf": true,
                     "content": [
-                        { label: 'Konu Anlatımı', completed: false },
-                        { label: 'Örnek Sorular', completed: false },
-                        { label: 'Quiz', completed: false }
+                        { "label": "Konu Anlatımı", "completed": false },
+                        { "label": "Örnek Sorular", "completed": false },
+                        { "label": "Quiz", "completed": false }
                     ],
-                    "tricks": ["F=m.a", "Kuvvet kütle ile doğru orantılıdır.", 
-                    "v=u+at", "Hız, ilk hız ile ivme ile doğru orantılıdır.", 
-                    "s=ut+1/2at^2", "Yer değiştirme, ilk hız, ivme ve zamanın karesiyle doğru orantılıdır.", 
-                    "v^2=u^2+2as", "Hızın karesi, ilk hızın karesi ile ivme ile doğru orantılıdır."]
-                      
+                    "tricks": ["Newton'un hareket yasalarını öğrenin", "F=ma formülünü kavrayın"]
                 }
             }
         ],
         "edges": [
             { "id": "e1-2", "source": "1", "target": "2", "sourceHandle": "a" },
-            { "id": "e1-3", "source": "1", "target": "3", "sourceHandle": "a" },
-            { "id": "e1-4", "source": "1", "target": "4", "sourceHandle": "a" },
-            { "id": "e2-5", "source": "2", "target": "5", "sourceHandle": "a" },
-            { "id": "e2-6", "source": "2", "target": "6", "sourceHandle": "a" },
-            { "id": "e3-7", "source": "3", "target": "7", "sourceHandle": "a" },
-            { "id": "e3-8", "source": "3", "target": "8", "sourceHandle": "a" },
-            { "id": "e4-9", "source": "4", "target": "9", "sourceHandle": "a" },
-            { "id": "e4-10", "source": "4", "target": "10", "sourceHandle": "a" }
+            { "id": "e2-5", "source": "2", "target": "5", "sourceHandle": "a" }
         ]
     }
 
-    ### **Talimatlar:**
-    - **Pozisyon Hesaplamaları:** Yukarıda belirtilen matematiksel modellemeyi kullanarak her node'un x ve y koordinatlarını hesaplayın. Bu, node'ların ve leaf'lerin üst üste binmesini önleyecektir.
-    - **Dinamik Sayı Yönetimi:** Node ve leaf sayısı değişken olduğu için, pozisyon hesaplamaları dinamik olarak yapılmalıdır. calculateNodePositions fonksiyonu bu dinamikliği sağlayacak şekilde yapılandırılmıştır.
-    - **Renkler:** Ana node için **#4169E1**, child node'lar için **#FFD93D**, leaf node'ler için **#4ECDC4** renkleri kullanılmalıdır.
-    - **Boyutlar:** Her node'un genişliği **300px**, yüksekliği ise **200px** olarak belirlenmiştir. Pozisyon hesaplamalarında bu boyutlar göz önünde bulundurulmalıdır.
-    - **Gerçek Veriler:** Lütfen gerçek verilere dayalı olarak zihin haritasını oluşturun. Template veya mock veri kullanmayın.`
-
-    
+    Kesin Kurallar:
+    1. Yalnızca JSON formatını döndürün. Açıklama, bilgi veya ek karakter kesinlikle eklenmemelidir.
+    2. Verilen JSON formatı dışında başka veri döndürülmemelidir.
+    3. Lütfen gerçek verilere dayalı olarak zihin haritasını oluşturun. Template veya mock veri kullanmayın.
+    4. JSON formatındaki yapının eksiksiz ve geçerli olmasına dikkat edin. Eksik veya hatalı parantez veya virgül olmamalıdır.`;
     const fastModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     let result = await fastModel.generateContent(prompt);
-    console.log("result", result.response?.candidates?.[0]?.content?.parts?.[0]?.text);
     let response = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     // Remove ```json and ``` from the response
@@ -238,6 +179,18 @@ export async function POST(req: NextRequest) {
               "color": "#4169E1",
               "isLeaf": false,
               "childLeafIds": ["2", "3"]
+            }
+          },
+          {
+            "id": "2",
+            "type": "custom",
+            "position": { "x": 250, "y": 250 },
+            "data": {
+              "label": "Child Node",
+              "color": "#FFD93D",
+              "isLeaf": true,
+              "content": ["Content 1", "Content 2"],
+              "tricks": ["Trick 1", "Trick 2"]
             }
           }
         ],

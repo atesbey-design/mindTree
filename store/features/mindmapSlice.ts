@@ -36,7 +36,6 @@ export const generateMindmap = createAsyncThunk(
       const errorData = await response.json();
       throw new Error(errorData.details || 'Failed to generate mindmap');
     }
-    console.log("response", response);
     
     const data = await response.json();
     return data as MindmapData;

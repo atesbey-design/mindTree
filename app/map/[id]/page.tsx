@@ -46,11 +46,9 @@ const colors = {
   leafHover: '#3CB371',
 };
 
-
-
 // Custom Node Component
 const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
-  const [nodeData, setNodeData] = useState(data);
+  const [nodeData, setNodeData] = useState(data || {});
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const dispatch = useDispatch();
@@ -61,7 +59,9 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
       const request = indexedDB.open('mindmapDB', 1);
 
       request.onsuccess = (event: any) => {
-        const db = event.target.result;
+        const db = event?.target?.result;
+        if (!db) return;
+        
         const transaction = db.transaction(['mindmaps'], 'readwrite');
         const store = transaction.objectStore('mindmaps');
         
@@ -70,9 +70,9 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
         getRequest.onsuccess = () => {
           const mindmap = getRequest.result;
           if (mindmap) {
-            const updatedNodes = mindmap.nodes.map((node: any) => 
-              node.id === id ? {...node, data: updatedNodeData} : node
-            );
+            const updatedNodes = mindmap.nodes?.map((node: any) => 
+              node?.id === id ? {...node, data: updatedNodeData} : node
+            ) || [];
             
             mindmap.nodes = updatedNodes;
             store.put(mindmap);
@@ -85,7 +85,12 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
   }, [id, mindmapId]);
 
   const handleComplete = useCallback(() => {
-    const updatedContent = nodeData.content.map((item: { completed: boolean }) => ({ ...item, completed: true }));
+    if (!nodeData?.content) return;
+
+    const updatedContent = nodeData.content.map((item: { completed: boolean } | null) => 
+      item ? { ...item, completed: true } : null
+    ).filter(Boolean);
+    
     const updatedNodeData = { ...nodeData, content: updatedContent, color: "#32CD32"};
     
     setNodeData(updatedNodeData);
@@ -105,12 +110,14 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
   }, [isExpanded]);
 
   const handleCheckboxChange = useCallback((index: number) => {
-    const updatedContent = nodeData.content.map((item: { completed: boolean }, idx: number) => 
-      idx === index ? { ...item, completed: !item.completed } : item
-    );
+    if (!nodeData?.content) return;
+
+    const updatedContent = nodeData.content.map((item: { completed: boolean } | null, idx: number) => 
+      item && idx === index ? { ...item, completed: !item.completed } : item
+    ).filter(Boolean);
     
     // Check if all items are completed
-    const allCompleted = updatedContent.every((item: { completed: boolean }) => item.completed);
+    const allCompleted = updatedContent.every((item: { completed: boolean } | null) => item?.completed);
     const updatedColor = allCompleted ? "#32CD32" : colors.mainNode;
     
     const updatedNodeData = { ...nodeData, content: updatedContent, color: updatedColor };
@@ -125,24 +132,26 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
   }, [nodeData, id, dispatch, updateIndexedDB]);
 
   useEffect(() => {
-    setNodeData(data);
+    if (data) {
+      setNodeData(data);
+    }
   }, [data]);
 
   useEffect(() => {
-    if (nodeData.onNodeUpdate) {
+    if (nodeData?.onNodeUpdate) {
       nodeData.onNodeUpdate(id, nodeData);
     }
   }, [nodeData, id]);
 
   const getHoverColor = useCallback(() => {
-    if (nodeData.isRoot) {
+    if (nodeData?.isRoot) {
       return "#3A5FCD";
-    } else if (nodeData.isLeaf) {
+    } else if (nodeData?.isLeaf) {
       return "#3CB371";
     } else {
       return "#3CB371";
     }
-  }, [nodeData.isRoot, nodeData.isLeaf]);
+  }, [nodeData?.isRoot, nodeData?.isLeaf]);
 
   const nodeStyle = useMemo(() => ({
     padding: '20px',
@@ -154,13 +163,13 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
     borderWidth: '3px',
     borderStyle: 'solid',
     borderColor: selected ? "#FFD93D" : "#000000",
-    backgroundColor: isHovered ? getHoverColor() : (nodeData.color || colors.mainNode),
+    backgroundColor: isHovered ? getHoverColor() : (nodeData?.color || colors.mainNode),
     position: 'relative' as const,
     boxShadow: '5px 5px 0px ' + colors.border,
     transition: 'all 0.3s ease',
     display: 'block',
     opacity: 1,
-  }), [selected, isHovered, getHoverColor, nodeData.color]);
+  }), [selected, isHovered, getHoverColor, nodeData?.color]);
 
   return (
     <div
@@ -177,8 +186,8 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
         textShadow: '1px 1px 0px #000000',
         letterSpacing: '0.5px'
       }}
-      >{nodeData.label}</strong>
-      {nodeData.isLeaf && (
+      >{nodeData?.label || ''}</strong>
+      {nodeData?.isLeaf && (
         <>
           <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 999 }}>
             <button onClick={toggleExpand} style={{ marginRight: '5px', cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
@@ -191,7 +200,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
             </button>
             <button onClick={(e) => { 
               e.stopPropagation(); 
-              if (typeof (window as any).nodeCallbacks?.onAskClick === 'function') {
+              if (typeof (window as any)?.nodeCallbacks?.onAskClick === 'function') {
                 (window as any).nodeCallbacks.onAskClick(id, nodeData);
               }
             }} style={{ marginRight: '5px', cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
@@ -204,7 +213,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
             </button>
             <button onClick={(e) => { 
               e.stopPropagation(); 
-              if (typeof (window as any).nodeCallbacks?.onEditClick === 'function') {
+              if (typeof (window as any)?.nodeCallbacks?.onEditClick === 'function') {
                 (window as any).nodeCallbacks.onEditClick(id, nodeData);
               }
             }} style={{ cursor: 'pointer', background: colors.secondaryNode, border: '2px solid ' + colors.border, borderRadius: '5px'}}>
@@ -218,48 +227,54 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
           </div>
         </>
       )}
-      {nodeData.content && nodeData.isLeaf && isExpanded && (
+      {nodeData?.content && nodeData?.isLeaf && isExpanded && (
         <div style={{ marginTop: '20px', textAlign: 'left', background: colors.background, padding: '10px', borderRadius: '5px', border: '2px solid ' + colors.border }}>
-          {nodeData.content.map((item: { label: string; completed: boolean }, index: number) => (
-            <div
-              key={index}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '5px',
-                padding: '5px',
-                borderRadius: '5px',
-                boxShadow: '3px 3px 0px ' + colors.border,
-                background: colors.mainNode,
-              }}
-            >
-              <input
-                type="checkbox"
-                id={`checkbox-${id}-${index}`}
-                style={{ marginRight: '10px' }}
-                checked={item.completed}
-                onChange={() => handleCheckboxChange(index)}
-              />
-              <label htmlFor={`checkbox-${id}-${index}`} style={{ flexGrow: 1, color: colors.text }}>
-                {item.label}
-              </label>
-              {item.completed && <span style={{ color: colors.secondary, marginLeft: '5px' }}>✔️</span>}
-            </div>
-          ))}
+          {nodeData.content.map((item: { label?: string; completed?: boolean } | null, index: number) => {
+            if (!item) return null;
+            return (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '5px',
+                  padding: '5px',
+                  borderRadius: '5px',
+                  boxShadow: '3px 3px 0px ' + colors.border,
+                  background: colors.mainNode,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id={`checkbox-${id}-${index}`}
+                  style={{ marginRight: '10px' }}
+                  checked={item.completed || false}
+                  onChange={() => handleCheckboxChange(index)}
+                />
+                <label htmlFor={`checkbox-${id}-${index}`} style={{ flexGrow: 1, color: colors.text }}>
+                  {item.label || ''}
+                </label>
+                {item.completed && <span style={{ color: colors.secondary, marginLeft: '5px' }}>✔️</span>}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {nodeData.tricks && nodeData.isLeaf && isExpanded && (
+      {nodeData?.tricks && nodeData?.isLeaf && isExpanded && (
         <div style={{ marginTop: '10px', textAlign: 'left', background: colors.background, padding: '10px', borderRadius: '5px', border: '2px solid ' + colors.border }}>
           <strong>Tips</strong>
-          {nodeData.tricks.map((trick: string, idx: number) => (
-            <div
-              key={idx}
-              style={{ marginTop: '5px', padding: '5px', borderRadius: '5px', boxShadow: '3px 3px 0px ' + colors.border, background: colors.secondaryNode }}
-            >
-              <label style={{ color: colors.text }}>{trick}</label>
-            </div>
-          ))}
+          {nodeData.tricks.map((trick: string | null, idx: number) => {
+            if (!trick) return null;
+            return (
+              <div
+                key={idx}
+                style={{ marginTop: '5px', padding: '5px', borderRadius: '5px', boxShadow: '3px 3px 0px ' + colors.border, background: colors.secondaryNode }}
+              >
+                <label style={{ color: colors.text }}>{trick}</label>
+              </div>
+            );
+          })}
         </div>
       )}
       <Handle type="source" position={Position.Bottom} id="a" />
@@ -277,8 +292,8 @@ export default function MapPage() {
   const { id } = useParams();
   const numericId = Number(id);
   const dispatch = useDispatch();
-  const nodes = useSelector(selectNodes);
-  const edges = useSelector(selectEdges);
+  const nodes = useSelector(selectNodes) || [];
+  const edges = useSelector(selectEdges) || [];
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [showLeafDetailModal, setShowLeafDetailModal] = useState(false);
@@ -308,7 +323,7 @@ export default function MapPage() {
   );
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    if (node.data?.isLeaf === false) {
+    if (node?.data?.isLeaf === false) {
       setSelectedNode(node.id);
       const childIds = node.data?.childLeafIds || [];
       dispatch({
@@ -345,14 +360,18 @@ export default function MapPage() {
       const request = indexedDB.open('mindmapDB', 1);
 
       request.onupgradeneeded = (event: any) => {
-        const db = event.target.result;
+        const db = event?.target?.result;
+        if (!db) return;
+        
         if (!db.objectStoreNames.contains('mindmaps')) {
           db.createObjectStore('mindmaps', { keyPath: 'id' });
         }
       };
 
       request.onsuccess = (event: any) => {
-        const db = event.target.result;
+        const db = event?.target?.result;
+        if (!db) return;
+
         const transaction = db.transaction(['mindmaps'], 'readwrite');
         const store = transaction.objectStore('mindmaps');
         
@@ -422,8 +441,10 @@ export default function MapPage() {
   useEffect(() => {
     const request = indexedDB.open('mindmapDB', 1);
 
-    request.onsuccess = (event) => {
-      const db = event.target.result;
+    request.onsuccess = (event: any) => {
+      const db = event?.target?.result;
+      if (!db) return;
+
       const transaction = db.transaction(['mindmaps'], 'readonly');
       const store = transaction.objectStore('mindmaps');
       const getRequest = store.get(numericId);
@@ -432,8 +453,8 @@ export default function MapPage() {
         const mindmap = getRequest.result;
         if (mindmap) {
           dispatch(setGeneratedData({ 
-            nodes: mindmap.nodes, 
-            edges: mindmap.edges 
+            nodes: mindmap.nodes || [], 
+            edges: mindmap.edges || [] 
           }));
           setIsGenerating(false);
         } else {
@@ -465,7 +486,7 @@ export default function MapPage() {
           onNodesChange={(changes) => {
             dispatch(nodesChange(changes));
             const updatedNodes = changes.reduce((acc, change) => {
-              if (change.type === 'position' && change.dragging) {
+              if (change.type === 'position' && change.dragging && change.position) {
                 return acc.map(node => 
                   node.id === change.id 
                     ? { ...node, position: change.position }

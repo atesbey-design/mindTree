@@ -12,7 +12,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Selected node and input message are required' }, { status: 400 });
     }
 
-    const prompt = `"${selectedNode.label}" konusunda uzman birisin bu konuda sana sorularn soruları bir öğretmen gibi cevaplamalısın.Cevapların örnekler içermeli ve bu örnekler sayesinde kullanıcı öğrenmeli. Cevaplarında kod vs olmamalı. sasdece bilgi aktarımı olmalı.İngilizce cevap verme.Sorulan soru ${inputMessage} bu soruya cevap verirken kullanıcının bilgi seviyesine göre cevap vermelisin.Sadece soruya cevap ver ek bilgi verme.Asla ama asla kim olduğunu ve ne olduğunu anlatma. Öğretmen olduğunu da söyleme.`;
+    const prompt = `"${selectedNode.label}" konusu hakkında detaylı ve kapsamlı bilgi vererek cevapla. Cevaplarında:
+    - Konuyla ilgili somut ve günlük hayattan örnekler kullan
+    - Karmaşık kavramları basit ve anlaşılır şekilde açıkla
+    - Bilimsel ve teknik doğruluğu koru
+    - Kullanıcının seviyesine uygun bir dil kullan
+    - Örneklerle desteklenmiş, net ve özlü açıklamalar yap
+    - Kod örnekleri verme, sadece kavramsal bilgi aktar
+    - Türkçe dilinde cevap ver
+    - Sadece sorulan "${inputMessage}" sorusuna odaklan ve konudan sapma
+    - Kendinden bahsetme, kim olduğunu belirtme
+    - Öğretici bir üslup kullan ama öğretmen/uzman olduğunu vurgulama`;
 
     // Initialize the model (using the gemini-pro model)
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
