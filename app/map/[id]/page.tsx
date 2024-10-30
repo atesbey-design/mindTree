@@ -96,7 +96,7 @@ const CustomNode: React.FC<NodeProps> = ({ data, id, selected }) => {
     setNodeData(updatedNodeData);
     setIsExpanded(false);
     
-    dispatch(updateNodeData({ nodeId: id, data: updatedNodeData }));
+    dispatch(updateNodeData({ id: id as string, data: updatedNodeData }));
     updateIndexedDB(updatedNodeData);
     
     if (nodeData.onNodeUpdate) {
