@@ -24,7 +24,7 @@ import CustomControls from '@/components/CustomControls';
 import { useParams } from 'next/navigation';
 import { selectNodes, selectEdges } from '@/context/selectors';
 import Draggable from 'react-draggable';
-import AskNode from '@/components/AskNode';
+import AskNode from '../../../components/AskNode';
 
 // Dynamically import ReactFlow components with SSR disabled
 const ReactFlow = dynamic(() => import('reactflow').then((mod) => mod.default), { ssr: false });
