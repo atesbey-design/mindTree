@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 
-interface AskNodeProps {
+interface AskNodeWTProps {
   selectedNode: {
     label: string;
     content: { label: string; completed: boolean }[];
@@ -10,7 +10,7 @@ interface AskNodeProps {
   };
 }
 
-const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
+const AskNodeWT: React.FC<AskNodeWTProps> = ({ selectedNode }) => {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -254,4 +254,4 @@ const AskNode: React.FC<AskNodeProps> = ({ selectedNode }) => {
   );
 };
 
-export default AskNode;
+export default AskNodeWT;

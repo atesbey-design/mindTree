@@ -24,7 +24,7 @@ import CustomControls from '@/components/CustomControls';
 import { useParams } from 'next/navigation';
 import { selectNodes, selectEdges } from '@/context/selectors';
 import Draggable from 'react-draggable';
-import AskNode from '../../../components/AskNode';
+import AskNodeWT from '@/components/AskNodeWT';
 
 // Dynamically import ReactFlow components with SSR disabled
 const ReactFlow = dynamic(() => import('reactflow').then((mod) => mod.default), { ssr: false });
@@ -592,7 +592,7 @@ export default function MapPage() {
                 cursor: 'pointer',
               }}
             />
-            <AskNode selectedNode={selectedNodeData} />
+            <AskNodeWT selectedNode={selectedNodeData} />
           </div>
         </Draggable>
       )}
