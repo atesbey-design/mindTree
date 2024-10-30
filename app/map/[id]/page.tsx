@@ -24,11 +24,11 @@ import CustomControls from '@/components/CustomControls';
 import { useParams } from 'next/navigation';
 import { selectNodes, selectEdges } from '@/context/selectors';
 import Draggable from 'react-draggable';
+import AskNode from '@/components/AskNode';
 
 // Dynamically import ReactFlow components with SSR disabled
 const ReactFlow = dynamic(() => import('reactflow').then((mod) => mod.default), { ssr: false });
 const Background = dynamic(() => import('reactflow').then((mod) => mod.Background), { ssr: false });
-const AskNode = dynamic(() => import('@/components/AskNode'), { ssr: false }); 
 
 // Neobrutalism color palette
 const colors = {
