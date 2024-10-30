@@ -13,7 +13,9 @@ const colors = {
   secondary: '#000000',
   accent: '#FFD93D',
   text: '#000000',
+  
   gradient: 'linear-gradient(135deg, #FFFFFF 0%, #F0F0F0 100%)'
+
 }
 
 const features = [
